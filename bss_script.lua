@@ -42,10 +42,10 @@ local function ApplyCelestialEffect()
             BgImage.Position = UDim2.new(0, 0, 0, 0)
             BgImage.Size = UDim2.new(1, 0, 1, 0)
             BgImage.Image = "rbxassetid://74060450766496"
-            BgImage.ImageTransparency = 0.5 -- Nếu vẫn chưa thấy rõ, hãy chỉnh xuống 0.3
+            BgImage.ImageTransparency = 0.5 -- Giữ mức này để vẫn nhìn xuyên qua thấy nội dung
             BgImage.ScaleType = Enum.ScaleType.Crop
-            BgImage.ZIndex = 0 -- Đảm bảo nằm dưới các nút bấm
-
+            -- Chỉnh lại chỗ này trong code của bạn:
+            BgImage.ZIndex = 1 -- Thay vì 0, để nó nổi lên trên lớp nền mặc định của Rayfield
             -- Hiệu ứng lấp lánh (Gradient)
             local Gradient = Instance.new("UIGradient", BgImage)
             Gradient.Color = ColorSequence.new({
