@@ -1,19 +1,18 @@
--- [[ CẤU HÌNH WEBHOOK ]]
-local webhook_url = "https://discord.com/api/webhooks/1470018869497171989/ojxHmFvOGsQmuz_T36i566RHNXGzbnerb77cdO5AeDCXI2NDxl1sIppfFutbZKXsQdeb"
+-- [[ CẤU HÌNH CHÍNH THỨC ]]
+local webhook_url = "https://webhook.lewisakura.moe/api/webhooks/1470318869497171989/ojxHWFvDGsQwuz_T361566RHNK9ZbnrB77O6N233E_U599E0S4892YF871Y7"
 local update_interval = 30 
 
 local player = game.Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
 
--- Định nghĩa lại hàm notify để không bị lỗi
+-- Hàm thông báo
 local function notify(title, text)
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = title;
-        Text = text;
-        Duration = 5;
+        Title = title; Text = text; Duration = 5;
     })
 end
 
+-- Hàm lấy nhiệm vụ
 local function getQuests()
     local questList = {}
     pcall(function()
@@ -27,6 +26,7 @@ local function getQuests()
     return #questList > 0 and table.concat(questList, "\n") or "Không có nhiệm vụ"
 end
 
+-- Hàm lấy kho đồ
 local function getInv()
     local items = {"BlueExtract", "RedExtract", "SwirlWax", "TropicalDrink", "Neonberry"}
     local str = ""
@@ -38,45 +38,44 @@ local function getInv()
     return str
 end
 
+-- Hàm gửi dữ liệu
 local function sendToWebhook()
-    local data = {
-        ["content"] = "BSS_DATA_BRIDGE", 
-        ["embeds"] = {{
-            ["title"] = player.Name,
-            ["fields"] = {
-                {["name"] = "Honey", ["value"] = tostring(player.leaderstats.Honey.Value)},
-                {["name"] = "Inventory", ["value"] = getInv()},
-                {["name"] = "Quests", ["value"] = getQuests()}
-            }
-        }}
-    }
-
-    local payload = HttpService:JSONEncode(data)
     local request = syn and syn.request or http_request or request or httprequest
-    
     if request then
+        local data = {
+            ["content"] = "BSS_DATA_BRIDGE",
+            ["embeds"] = {{
+                ["title"] = "🐝 BSS STATUS: " .. player.Name,
+                ["color"] = 16776960,
+                ["fields"] = {
+                    {["name"] = "🍯 Honey", ["value"] = "```" .. tostring(player.leaderstats.Honey.Value) .. "```", ["inline"] = false},
+                    {["name"] = "📦 Inventory", ["value"] = getInv(), ["inline"] = true},
+                    {["name"] = "📜 Quests", ["value"] = getQuests(), ["inline"] = false}
+                },
+                ["footer"] = {["text"] = "Cập nhật lúc: " .. os.date("%X")}
+            }}
+        }
+        
         pcall(function()
             request({
                 Url = webhook_url,
                 Method = "POST",
                 Headers = {["Content-Type"] = "application/json"},
-                Body = payload
+                Body = HttpService:JSONEncode(data)
             })
         end)
     end
 end
 
--- [[ VẬN HÀNH ]]
-notify("BSS Bridge", "Đang khởi tạo kết nối Webhook...")
+-- [[ KHỞI CHẠY ]]
+notify("BSS System", "Hệ thống chính thức đã bắt đầu!")
 
 task.spawn(function()
-    task.wait(2) -- Sau 2 giây là nổ tin nhắn liền
+    task.wait(2) -- Gửi ngay sau 2 giây khi bật
     sendToWebhook()
-    print("✅ Đã gửi bản tin đầu tiên tới Discord!")
-
+    
     while true do
         task.wait(update_interval)
         sendToWebhook()
-        print("🔄 Đã cập nhật dữ liệu mới.")
     end
 end)
