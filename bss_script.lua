@@ -1,101 +1,66 @@
-local WindUI = loadstring(game:HttpGet("https://tree-hub.vercel.app/api/library/windui"))()
+-- Gọi thư viện tự chế của bạn
+-- Chú ý: Thay link bên dưới bằng link Raw chuẩn của CelestialLib.lua
+local CelestialLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/HoafngKhooi/d-n-c-y-thu-Bee-Swarm-Simulator/main/CelestialLib.lua"))()
 
--- 1. Khởi tạo Cửa sổ chính
-local Window = WindUI:CreateWindow({
-    Title = "✨ CELESTIAL VEIL HUB ✨",
-    SubTitle = "Bee Swarm Simulator Edition",
-    Icon = "rbxassetid://10723343321", -- Icon Fluent Windows
-    Author = "Celestial Team",
-    Folder = "Celestial_BSS_Config", -- Thư mục lưu cài đặt
-    
-    OpenButton = {
-        Title = "Celestial Menu",
-        Enabled = true,
-        Draggable = true,
-        OnlyMobile = true, -- Chỉ hiện nút nổi trên điện thoại
-        Color = ColorSequence.new(Color3.fromHex("#7775F2"), Color3.fromHex("#AFADFF"))
-    }
-})
+-- 1. Khởi tạo Cửa sổ chính (Tên gọi theo hàm .new bạn đã viết)
+local Window = CelestialLib.new("✨ CELESTIAL VEIL HUB ✨")
 
 -- 2. Tạo các Tab chính
-local MainTab = Window:Tab({ Title = "Trang Chủ", Icon = "solar:home-2-bold" })
-local FarmTab = Window:Tab({ Title = "Tự Động", Icon = "solar:check-square-bold" })
-local MiscTab = Window:Tab({ Title = "Tiện Ích", Icon = "solar:settings-bold" })
+local MainTab = Window:CreateTab("Trang Chủ")
+local FarmTab = Window:CreateTab("Tự Động")
+local MiscTab = Window:CreateTab("Tiện Ích")
 
 -- ==========================================
--- TRANG CHỦ (Thông tin & Webhook)
+-- TRANG CHỦ
 -- ==========================================
-MainTab:Section({ Title = "Thông Tin Hệ Thống" })
+-- (Lưu ý: CelestialLib hiện tại chỉ có AddButton và AddToggle, 
+-- nên mình chuyển Paragraph thành Button hoặc Label tùy ý)
 
-MainTab:Paragraph({
-    Title = "Người chơi: " .. game.Players.LocalPlayer.Name,
-    Content = "Trạng thái: Đang hoạt động ✅\nPhiên bản: 1.0.5",
-})
+MainTab:AddButton("Người chơi: " .. game.Players.LocalPlayer.Name, function()
+    print("Đây là thông tin người dùng.")
+end)
 
-MainTab:Button({
-    Title = "Gửi Webhook Báo Cáo",
-    Desc = "Cập nhật mật ong và túi đồ lên Discord",
-    Callback = function()
-        -- Chèn logic Webhook của bạn ở đây
-        WindUI:Notify({
-            Title = "Hệ thống",
-            Content = "Đã gửi báo cáo thành công!",
-            Type = "Success"
-        })
-    end
-})
+MainTab:AddButton("Gửi Webhook Báo Cáo", function()
+    -- Logic Webhook của bạn
+    print("Đang gửi báo cáo tới Discord...")
+end)
 
 -- ==========================================
 -- TỰ ĐỘNG (Auto Farm)
 -- ==========================================
-FarmTab:Section({ Title = "Cấu Hình Cày Thu" })
-
-FarmTab:Toggle({
-    Title = "Tự Động Đào (Auto Dig)",
-    Desc = "Tự động sử dụng Tool để thu hoạch",
-    Value = false,
-    Callback = function(state)
-        _G.AutoDig = state
+FarmTab:AddToggle("Tự Động Đào (Auto Dig)", function(state)
+    _G.AutoDig = state
+    if state then
         task.spawn(function()
             while _G.AutoDig do
-                local tool = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                if tool then tool:Activate() end
+                local char = game.Players.LocalPlayer.Character
+                local tool = char and char:FindFirstChildOfClass("Tool")
+                if tool then 
+                    tool:Activate() 
+                end
                 task.wait(0.1)
             end
         end)
     end
-})
-
-FarmTab:Dropdown({
-    Title = "Chọn Cánh Đồng",
-    Values = {"Sunflower", "Mushroom", "Blue Flower", "Clover", "Spider", "Bamboo"},
-    Value = "Sunflower",
-    Callback = function(selected)
-        print("Đã chọn cánh đồng: " .. selected)
-    end
-})
+end)
 
 -- ==========================================
 -- TIỆN ÍCH (Settings)
 -- ==========================================
-MiscTab:Section({ Title = "Cải Thiện Nhân Vật" })
 
-MiscTab:Slider({
-    Title = "Tốc Độ Chạy",
-    Step = 1,
-    Value = { Min = 16, Max = 300, Default = 16 },
-    Callback = function(v)
-        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = v
-    end
-})
+-- Hiện tại Library của bạn chưa có Slider, 
+-- tạm thời mình dùng Button để tăng tốc độ chạy nhé!
+MiscTab:AddButton("Tốc độ chạy: Siêu nhanh (100)", function()
+    game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 100
+end)
 
-MiscTab:Button({
-    Title = "Hủy Script (Destroy)",
-    Color = Color3.fromHex("#FF4830"),
-    Callback = function()
-        Window:Destroy()
-    end
-})
+MiscTab:AddButton("Tốc độ chạy: Bình thường (16)", function()
+    game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 16
+end)
 
--- Tự động chọn Tab đầu tiên khi load
-Window:SelectTab(MainTab)
+MiscTab:AddButton("Hủy Script (Destroy UI)", function()
+    Window.Gui:Destroy()
+end)
+
+-- Mặc định hiển thị Tab đầu tiên
+MainTab.Visible = true
