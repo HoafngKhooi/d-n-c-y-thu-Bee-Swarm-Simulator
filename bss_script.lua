@@ -19,43 +19,54 @@ local Window = Rayfield:CreateWindow({
 -- 2. Hàm tạo hiệu ứng hình nền bám theo Menu
 -- (Được thiết kế để tự động nhận diện khung của Rayfield)
 local function ApplyCelestialEffect()
-    local MainGui = game:GetService("CoreGui"):FindFirstChild("Rayfield")
-    if MainGui then
-        local MainFrame = MainGui:FindFirstChild("Main")
+    -- Đợi một chút để Rayfield tạo xong các Frame nội bộ
+    task.wait(1) 
+    
+    -- Tìm kiếm UI của Rayfield trong CoreGui
+    local CoreGui = game:GetService("CoreGui")
+    local RayfieldGui = CoreGui:FindFirstChild("Rayfield") or CoreGui:FindFirstChild("RayfieldUI")
+
+    if RayfieldGui then
+        local MainFrame = RayfieldGui:FindFirstChild("Main")
         if MainFrame then
-            -- Tạo ảnh nền
+            -- Kiểm tra xem đã có nền chưa để tránh tạo trùng
+            if MainFrame:FindFirstChild("CelestialBg") then return end
+
             local BgImage = Instance.new("ImageLabel")
             BgImage.Name = "CelestialBg"
             BgImage.Parent = MainFrame
             BgImage.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
             BgImage.BackgroundTransparency = 1
             BgImage.BorderSizePixel = 0
+            -- Căn chỉnh phủ kín toàn bộ menu
             BgImage.Position = UDim2.new(0, 0, 0, 0)
             BgImage.Size = UDim2.new(1, 0, 1, 0)
-            BgImage.Image = "rbxassetid://74060450766496" -- ID ảnh của ông
-            BgImage.ImageTransparency = 0.5 -- Độ mờ ảnh nền
+            BgImage.Image = "rbxassetid://74060450766496"
+            BgImage.ImageTransparency = 0.5 -- Nếu vẫn chưa thấy rõ, hãy chỉnh xuống 0.3
             BgImage.ScaleType = Enum.ScaleType.Crop
-            BgImage.ZIndex = 0
-            
-            -- Tạo lớp phủ màu động (Gradient)
+            BgImage.ZIndex = 0 -- Đảm bảo nằm dưới các nút bấm
+
+            -- Hiệu ứng lấp lánh (Gradient)
             local Gradient = Instance.new("UIGradient", BgImage)
             Gradient.Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Color3.fromRGB(100, 100, 255)), -- Tím xanh
-                ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)), -- Ánh sáng trắng
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 100, 255))
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(120, 120, 255)),
+                ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(120, 120, 255))
             })
 
-            -- Loop chạy hiệu ứng ánh sáng trôi
             task.spawn(function()
                 local TweenService = game:GetService("TweenService")
                 while true do
                     Gradient.Offset = Vector2.new(-1, 0)
-                    local tween = TweenService:Create(Gradient, TweenInfo.new(6, Enum.EasingStyle.Linear), {Offset = Vector2.new(1, 0)})
+                    local tween = TweenService:Create(Gradient, TweenInfo.new(5, Enum.EasingStyle.Linear), {Offset = Vector2.new(1, 0)})
                     tween:Play()
                     tween.Completed:Wait()
                 end
             end)
         end
+    else
+        -- Nếu không tìm thấy, thử lại sau 2 giây (Dành cho máy lag)
+        task.delay(2, ApplyCelestialEffect)
     end
 end
 
