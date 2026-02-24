@@ -1,89 +1,74 @@
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local WindUI = loadstring(game:HttpGet("https://tree-hub.vercel.app/api/library/windui"))()
 
--- 1. Khởi tạo Window (Ẩn các thành phần mặc định của Rayfield)
-local Window = Rayfield:CreateWindow({
-   Name = "✨ CELESTIAL HUB ✨",
-   LoadingTitle = "CELESTIAL SYSTEM",
-   LoadingSubtitle = "by Celestial Team",
-   ConfigurationSaving = {
-      Enabled = true,
-      FolderName = "CelestialConfig", 
-      FileName = "Data"
-   },
-   Discord = {
-      Enabled = false -- Tắt phần quảng cáo Discord của Rayfield
-   },
-   KeySystem = false 
+-- 1. Khởi tạo Window
+local Window = WindUI:CreateWindow({
+    Title = "✨ CELESTIAL VEIL HUB ✨",
+    SubTitle = "Bee Swarm Simulator Edition",
+    Icon = "rbxassetid://10723343321", -- Icon Windows Style
+    Author = "Celestial Team",
+    Folder = "CelestialConfig"
 })
 
--- 2. Hàm ẩn Logo và làm sạch giao diện
-local function CleanRayfield()
-    local CoreGui = game:GetService("CoreGui")
-    -- Đợi UI xuất hiện
-    local RayfieldGui = CoreGui:WaitForChild("Rayfield", 5) or CoreGui:WaitForChild("RayfieldUI", 5)
-    
-    if RayfieldGui then
-        local Main = RayfieldGui:FindFirstChild("Main")
-        if Main then
-            -- Duyệt tìm các ImageLabel chứa Logo của Rayfield
-            for _, v in pairs(Main:GetDescendants()) do
-                if v:IsA("ImageLabel") then
-                    -- Ẩn các hình ảnh không phải là icon của Tab
-                    if not v.Parent:IsA("TextButton") and v.Name ~= "Icon" then
-                        v.Visible = false
-                    end
-                end
-                
-                -- Đổi tên thương hiệu Sirius/Rayfield nếu nó xuất hiện trong văn bản
-                if v:IsA("TextLabel") and (v.Text:find("Rayfield") or v.Text:find("Sirius")) then
-                    v.Text = "CELESTIAL"
-                end
-            end
-        end
-    end
-end
-
--- Thực hiện dọn dẹp ngay sau khi khởi tạo
-task.spawn(CleanRayfield)
-
--- 3. Cấu trúc Tab
-local HomeTab = Window:CreateTab("Trang Chủ", "home") -- Sử dụng tên icon thay vì ID để chuyên nghiệp hơn
-local FarmTab = Window:CreateTab("Tự Động", "play")
+-- 2. Tạo các Tab (Thanh bên trái)
+local MainTab = Window:CreateTab("Trang Chủ", "home")
+local FarmTab = Window:CreateTab("Cày Thu", "shovels")
 local MiscTab = Window:CreateTab("Tiện Ích", "settings")
 
--- Tab Trang Chủ
-HomeTab:CreateSection("Thông tin bản quyền")
-HomeTab:CreateLabel("Giao diện thuộc về Celestial Hub - Version 1.0")
-
-HomeTab:CreateButton({
-   Name = "Gửi Báo Cáo Webhook",
-   Callback = function()
-       -- Tích hợp code Webhook của bạn ở đây
-       Rayfield:Notify({
-          Title = "Hệ thống",
-          Content = "Đã gửi dữ liệu tới máy chủ báo cáo.",
-          Duration = 3,
-          Image = 0
-       })
-   end,
+-- 3. Nội dung Tab Trang Chủ
+MainTab:AddParagraph({
+    Title = "Hệ thống",
+    Content = "Chào mừng bạn! Giao diện WindUI đã được kích hoạt thành công."
 })
 
--- Tab Tiện Ích
-MiscTab:CreateSection("Người chơi")
-MiscTab:CreateSlider({
-   Name = "Tốc độ chạy",
-   Range = {16, 500},
-   Increment = 1,
-   CurrentValue = 16,
-   Callback = function(Value)
-       game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
-   end,
+MainTab:AddButton({
+    Title = "Gửi Báo Cáo Webhook",
+    Desc = "Gửi thông số mật ong hiện tại tới Discord",
+    Callback = function()
+        print("Đang gửi Webhook...")
+        Window:Notify({
+            Title = "Hệ thống",
+            Content = "Đã gửi báo cáo thành công!",
+            Type = "Success"
+        })
+    end
 })
 
--- Thông báo hoàn tất
-Rayfield:Notify({
-   Title = "Celestial Hub Loaded!",
-   Content = "Chúc bạn trải nghiệm vui vẻ.",
-   Duration = 5,
-   Image = 0, -- Ẩn icon mặc định để sạch sẽ hơn
+-- 4. Nội dung Tab Cày Thu (Bố cục chia cột hiện đại)
+FarmTab:AddToggle({
+    Title = "Tự Động Đào (Auto Dig)",
+    Value = false,
+    Callback = function(state)
+        _G.AutoDig = state
+        task.spawn(function()
+            while _G.AutoDig do
+                local tool = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                if tool then tool:Activate() end
+                task.wait(0.1)
+            end
+        end)
+    end
 })
+
+FarmTab:AddDropdown({
+    Title = "Chọn Cánh Đồng",
+    Multi = false,
+    Options = {"Sunflower", "Mushroom", "Blue Flower", "Clover", "Spider"},
+    Default = "Sunflower",
+    Callback = function(selected)
+        print("Đã chọn cánh đồng: " .. selected)
+    end
+})
+
+-- 5. Tab Tiện Ích
+MiscTab:AddSlider({
+    Title = "Tốc độ chạy (WalkSpeed)",
+    Value = 16,
+    Min = 16,
+    Max = 300,
+    Callback = function(v)
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = v
+    end
+})
+
+-- Tự động mở Tab đầu tiên
+Window:SelectTab(MainTab)
