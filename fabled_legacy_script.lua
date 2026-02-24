@@ -1,31 +1,38 @@
 --[[
     Fabled Legacy - Advanced Dungeon Bot (Walk-Only)
-    Author: HoafngKhooi
+    UI Edition by HoafngKhooi
 ]]
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+    Name = "Fabled Legacy | HoafngKhooi Hub",
+    LoadingTitle = "Đang tải Script...",
+    LoadingSubtitle = "by HoafngKhooi",
+    ConfigurationSaving = {
+       Enabled = true,
+       FolderName = "HoafngKhooi_Fabled",
+       FileName = "Config"
+    },
+    KeySystem = false -- Bạn có thể bật Key System nếu muốn
+})
+
+-- Biến Trạng Thái (Global)
+_G.AutoFarm = false
+_G.AutoSkill = false
+_G.AutoDodge = false
 
 local Players = game:GetService("Players")
 local PathfindingService = game:GetService("PathfindingService")
-local RunService = game:GetService("RunService")
-
 local Player = Players.LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
 local Humanoid = Character:WaitForChild("Humanoid")
 local Root = Character:WaitForChild("HumanoidRootPart")
 
--- CÀI ĐẶT CHUNG
-local Settings = {
-    AutoSkill = true,
-    DodgeRedZones = true,
-    SkillKeys = {"Q", "E", "R", "F"},
-    DetectionRadius = 60
-}
-
--- 1. HÀM TÌM QUÁI (Targeting)
+-- 1. HÀM TÌM QUÁI
 local function getTarget()
     local closestTarget = nil
-    local maxDist = Settings.DetectionRadius
-    
-    -- Fabled Legacy thường để quái trong workspace.Enemies hoặc Mob
+    local maxDist = 100 -- Tầm quét quái
     for _, v in pairs(workspace:GetChildren()) do
         if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v ~= Character then
             local dist = (Root.Position - v.PrimaryPart.Position).Magnitude
@@ -38,16 +45,14 @@ local function getTarget()
     return closestTarget
 end
 
--- 2. HÀM NÉ CHIÊU (Dodge Logic)
--- Quét các Part cảnh báo màu đỏ trên mặt đất
+-- 2. HÀM NÉ CHIÊU
 local function checkAndDodge()
+    if not _G.AutoDodge then return false end
     for _, obj in pairs(workspace:GetChildren()) do
-        -- Kiểm tra các vùng đỏ (thường là Part có màu đỏ hoặc tên "Indicator")
-        if obj:IsA("BasePart") and (obj.BrickColor == BrickColor.new("Really red") or obj.Name:find("Zone")) then
+        if obj:IsA("BasePart") and (obj.BrickColor == BrickColor.new("Really red") or obj.Name:find("Indicator")) then
             local dist = (Root.Position - obj.Position).Magnitude
-            if dist < (obj.Size.X / 2 + 3) then
-                -- Lệnh nhảy hoặc lướt ra xa
-                Humanoid:MoveTo(Root.Position + (Root.CFrame.RightVector * 15))
+            if dist < (obj.Size.X / 2 + 5) then
+                Humanoid:MoveTo(Root.Position + (Root.CFrame.RightVector * 20)) -- Né sang phải
                 return true
             end
         end
@@ -55,47 +60,85 @@ local function checkAndDodge()
     return false
 end
 
--- 3. HÀM DI CHUYỂN BỘ (Pathfinding)
+-- 3. HÀM DI CHUYỂN BỘ
 local function walkTo(position)
     local path = PathfindingService:CreatePath({AgentCanJump = true})
     path:ComputeAsync(Root.Position, position)
-    
     if path.Status == Enum.PathStatus.Success then
         local waypoints = path:GetWaypoints()
         for i, waypoint in pairs(waypoints) do
-            if checkAndDodge() then break end -- Ưu tiên né chiêu
+            if not _G.AutoFarm or checkAndDodge() then break end
             Humanoid:MoveTo(waypoint.Position)
-            
-            -- Nếu có quái gần, dừng lại đánh một chút rồi đi tiếp
-            if getTarget() and (Root.Position - getTarget().PrimaryPart.Position).Magnitude < 15 then
-                break
-            end
-            Humanoid.MoveToFinished:Wait(0.1)
+            if getTarget() and (Root.Position - getTarget().PrimaryPart.Position).Magnitude < 12 then break end
+            Humanoid.MoveToFinished:Wait(0.05)
         end
     end
 end
 
--- 4. VÒNG LẶP CHÍNH (Main Loop)
+-- TAB GIAO DIỆN
+local MainTab = Window:CreateTab("Main Farm", 4483362458) -- Icon ID
+
+MainTab:CreateToggle({
+    Name = "Auto Dungeon (Walk Only)",
+    CurrentValue = false,
+    Callback = function(Value)
+        _G.AutoFarm = Value
+    end,
+})
+
+MainTab:CreateToggle({
+    Name = "Auto Use Skills",
+    CurrentValue = false,
+    Callback = function(Value)
+        _G.AutoSkill = Value
+    end,
+})
+
+MainTab:CreateToggle({
+    Name = "Smart Dodge (Né vùng đỏ)",
+    CurrentValue = false,
+    Callback = function(Value)
+        _G.AutoDodge = Value
+    end,
+})
+
+MainTab:CreateSlider({
+   Name = "Quét quái xa (Range)",
+   Range = {30, 200},
+   Increment = 10,
+   Suffix = "Studs",
+   CurrentValue = 60,
+   Callback = function(Value)
+      -- Cập nhật tầm quét nếu cần
+   end,
+})
+
+-- VÒNG LẶP CHÍNH
 task.spawn(function()
     while task.wait(0.5) do
-        local target = getTarget()
-        
-        if not checkAndDodge() then
-            if target then
-                local dist = (Root.Position - target.PrimaryPart.Position).Magnitude
-                if dist > 10 then
-                    walkTo(target.PrimaryPart.Position)
-                else
-                    -- Xả Skill khi đủ gần
-                    for _, key in pairs(Settings.SkillKeys) do
-                        -- Thay thế đoạn này bằng RemoteEvent của game sau khi dùng SimpleSpy
-                        print("Đang xả chiêu: " .. key)
+        if _G.AutoFarm then
+            local target = getTarget()
+            if not checkAndDodge() then
+                if target then
+                    local dist = (Root.Position - target.PrimaryPart.Position).Magnitude
+                    if dist > 12 then
+                        walkTo(target.PrimaryPart.Position)
+                    else
+                        if _G.AutoSkill then
+                            -- Gửi lệnh Skill tới Server (Ví dụ)
+                            -- game:GetService("VirtualInputManager"):SendKeyEvent(true, "Q", false, game)
+                            print("Sử dụng kỹ năng lên: " .. target.Name)
+                        end
                     end
                 end
-            else
-                -- Nếu không có quái, đi tìm checkpoint tiếp theo (Cổng Dungeon)
-                -- walkTo(Vector3.new(x, y, z))
             end
         end
     end
 end)
+
+Rayfield:Notify({
+   Title = "Script Loaded!",
+   Content = "Chúc bạn cày game vui vẻ - HoafngKhooi",
+   Duration = 5,
+   Image = 4483362458,
+})
