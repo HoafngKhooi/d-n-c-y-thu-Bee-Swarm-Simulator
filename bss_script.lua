@@ -5,6 +5,15 @@ local update_interval = 30
 local player = game.Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
 
+-- Định nghĩa lại hàm notify để không bị lỗi
+local function notify(title, text)
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = title;
+        Text = text;
+        Duration = 5;
+    })
+end
+
 local function getQuests()
     local questList = {}
     pcall(function()
@@ -31,7 +40,7 @@ end
 
 local function sendToWebhook()
     local data = {
-        ["content"] = "BSS_DATA_BRIDGE", -- Từ khóa quan trọng để Bot nhận diện
+        ["content"] = "BSS_DATA_BRIDGE", 
         ["embeds"] = {{
             ["title"] = player.Name,
             ["fields"] = {
@@ -57,15 +66,17 @@ local function sendToWebhook()
     end
 end
 
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "BSS Bridge";
-    Text = "Đang chạy chế độ Webhook!";
-    Duration = 5;
-})
+-- [[ VẬN HÀNH ]]
+notify("BSS Bridge", "Đang khởi tạo kết nối Webhook...")
 
 task.spawn(function()
+    task.wait(2) -- Sau 2 giây là nổ tin nhắn liền
+    sendToWebhook()
+    print("✅ Đã gửi bản tin đầu tiên tới Discord!")
+
     while true do
-        sendToWebhook()
         task.wait(update_interval)
+        sendToWebhook()
+        print("🔄 Đã cập nhật dữ liệu mới.")
     end
 end)
