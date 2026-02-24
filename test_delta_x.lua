@@ -1,4 +1,4 @@
-local webhook_url = "https://discord.com/api/webhooks/1470018869497171989/ojxHmFvOGsQmuz_T36i566RHNXGzbnerb77cdO5AeDCXI2NDxl1sIppfFutbZKXsQdeb"
+local webhook_url = "https://webhook.lewisakura.moe/api/webhooks/1470018869497171989/ojxHmFvOGsQmuz_T36i566RHNXGzbnerb77cdO5AeDCXI2NDxl1sIppfFutbZKXsQdeb"
 local HttpService = game:GetService("HttpService")
 
 -- Thông báo bắt đầu test
