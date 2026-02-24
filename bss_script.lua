@@ -1,95 +1,56 @@
--- [[ 1. HỆ THỐNG WEBHOOK - CHẠY NGẦM ]]
-local webhook_url = "https://webhook.lewisakura.moe/api/webhooks/1470318869497171989/ojxHWFvDGsQwuz_T361566RHNK9ZbnrB77O6N233E_U599E0S4892YF871Y7"
-local update_interval = 30 
-local player = game.Players.LocalPlayer
-local HttpService = game:GetService("HttpService")
+-- [[ CELESTIAL UI FRAMEWORK - VERSION 1.0 ]]
 
-local function getInv()
-    local items = {"BlueExtract", "RedExtract", "SwirlWax", "TropicalDrink", "Neonberry"}
-    local str = ""
-    for _, name in pairs(items) do
-        local count = 0
-        pcall(function() count = player.ItemInventory[name].Value end)
-        str = str .. "🔹 " .. name .. ": " .. count .. "\n"
-    end
-    return str
-end
-
-local function sendToWebhook()
-    local request = syn and syn.request or http_request or request or httprequest
-    if request and player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Honey") then
-        local data = {
-            ["embeds"] = {{
-                ["title"] = "🐝 BSS STATUS: " .. player.Name,
-                ["fields"] = {
-                    {["name"] = "🍯 Honey", ["value"] = "```" .. tostring(player.leaderstats.Honey.Value) .. "```", ["inline"] = false},
-                    {["name"] = "📦 Inventory", ["value"] = getInv(), ["inline"] = true}
-                },
-                ["color"] = 16776960,
-                ["footer"] = {["text"] = "Cập nhật lúc: " .. os.date("%X")}
-            }}
-        }
-        pcall(function()
-            request({
-                Url = webhook_url,
-                Method = "POST",
-                Headers = {["Content-Type"] = "application/json"},
-                Body = HttpService:JSONEncode(data)
-            })
-        end)
-    end
-end
-
--- Chạy ngầm gửi dữ liệu
-task.spawn(function()
-    while true do
-        sendToWebhook()
-        task.wait(update_interval)
-    end
-end)
-
--- [[ 2. KHỞI TẠO GIAO DIỆN CELESTIAL UI ]]
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
+-- 1. Khởi tạo cửa sổ chính
 local Window = Rayfield:CreateWindow({
-   Name = "✨ CELESTIAL HUB x BSS ✨",
-   LoadingTitle = "Đang khởi tạo hệ thống...",
+   Name = "✨ CELESTIAL VEIL HUB ✨",
+   LoadingTitle = "Đang khởi tạo không gian...",
    LoadingSubtitle = "by YourName",
-   ConfigurationSaving = { Enabled = true, FileName = "CelestialBSS" },
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = "CelestialConfig",
+      FileName = "UILayout"
+   },
    Discord = { Enabled = false },
    KeySystem = false 
 })
 
--- Tạo ảnh nền Celestial Veil bám theo Menu
-local function CreateBackground()
+-- 2. Hàm tạo hiệu ứng hình nền bám theo Menu
+-- (Được thiết kế để tự động nhận diện khung của Rayfield)
+local function ApplyCelestialEffect()
     local MainGui = game:GetService("CoreGui"):FindFirstChild("Rayfield")
     if MainGui then
         local MainFrame = MainGui:FindFirstChild("Main")
         if MainFrame then
+            -- Tạo ảnh nền
             local BgImage = Instance.new("ImageLabel")
             BgImage.Name = "CelestialBg"
             BgImage.Parent = MainFrame
-            BgImage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            BgImage.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
             BgImage.BackgroundTransparency = 1
+            BgImage.BorderSizePixel = 0
             BgImage.Position = UDim2.new(0, 0, 0, 0)
-            BgImage.Size = UDim2.new(1, 0, 1, 0) -- Phủ kín menu
-            BgImage.Image = "rbxassetid://74060450766496"
-            BgImage.ImageTransparency = 0.5
-            BgImage.ZIndex = 0 -- Nằm dưới các nút bấm
+            BgImage.Size = UDim2.new(1, 0, 1, 0)
+            BgImage.Image = "rbxassetid://74060450766496" -- ID ảnh của ông
+            BgImage.ImageTransparency = 0.5 -- Độ mờ ảnh nền
+            BgImage.ScaleType = Enum.ScaleType.Crop
+            BgImage.ZIndex = 0
             
-            -- Hiệu ứng Gradient trôi cho ảnh nền
+            -- Tạo lớp phủ màu động (Gradient)
             local Gradient = Instance.new("UIGradient", BgImage)
             Gradient.Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Color3.fromRGB(150, 150, 255)),
-                ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(150, 150, 255))
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(100, 100, 255)), -- Tím xanh
+                ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)), -- Ánh sáng trắng
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 100, 255))
             })
 
+            -- Loop chạy hiệu ứng ánh sáng trôi
             task.spawn(function()
                 local TweenService = game:GetService("TweenService")
                 while true do
-                    local tween = TweenService:Create(Gradient, TweenInfo.new(5, Enum.EasingStyle.Linear), {Offset = Vector2.new(1, 0)})
                     Gradient.Offset = Vector2.new(-1, 0)
+                    local tween = TweenService:Create(Gradient, TweenInfo.new(6, Enum.EasingStyle.Linear), {Offset = Vector2.new(1, 0)})
                     tween:Play()
                     tween.Completed:Wait()
                 end
@@ -98,32 +59,42 @@ local function CreateBackground()
     end
 end
 
--- Chạy hàm tạo nền sau khi UI load xong
-task.delay(1, CreateBackground)
+-- Chạy hiệu ứng sau khi Rayfield dựng xong khung
+task.delay(0.5, ApplyCelestialEffect)
 
--- [[ 3. CÁC TAB CHỨC NĂNG ]]
-local MainTab = Window:CreateTab("Tự Động", 4483362458)
+-- 3. Cấu trúc Tab mẫu
+local HomeTab = Window:CreateTab("Trang Chủ", 4483362458)
+local FarmTab = Window:CreateTab("Tự Động", 4483362458)
+local MiscTab = Window:CreateTab("Tiện Ích", 4483362458)
 
-MainTab:CreateButton({
-   Name = "Gửi Webhook ngay lập tức",
-   Callback = function()
-       sendToWebhook()
-       Rayfield:Notify({Title = "Hệ thống", Content = "Đang gửi dữ liệu tới Discord...", Duration = 3})
+-- 4. Thêm các nút bấm test giao diện
+HomeTab:CreateSection("Thông tin")
+HomeTab:CreateLabel("Chào mừng bạn đến với giao diện Celestial")
+
+FarmTab:CreateSection("Cấu hình Farm")
+FarmTab:CreateToggle({
+   Name = "Bật Auto Dig",
+   CurrentValue = false,
+   Callback = function(Value)
+       print("Auto Dig: ", Value)
    end,
 })
 
-MainTab:CreateSlider({
+MiscTab:CreateSection("Người chơi")
+MiscTab:CreateSlider({
    Name = "Tốc độ chạy",
-   Range = {16, 300},
+   Range = {16, 500},
    Increment = 1,
    CurrentValue = 16,
    Callback = function(Value)
-       player.Character.Humanoid.WalkSpeed = Value
+       game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
    end,
 })
 
+-- Thông báo hoàn tất
 Rayfield:Notify({
-   Title = "Thành công!",
-   Content = "Chào mừng tới Celestial Veil BSS!",
+   Title = "Celestial Ready!",
+   Content = "Giao diện đã tải xong, chúc bạn trải nghiệm vui vẻ.",
    Duration = 5,
+   Image = 4483362458,
 })
