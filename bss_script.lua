@@ -1,31 +1,43 @@
 local WindUI = loadstring(game:HttpGet("https://tree-hub.vercel.app/api/library/windui"))()
 
--- 1. Khởi tạo Window
+-- 1. Khởi tạo Cửa sổ chính
 local Window = WindUI:CreateWindow({
     Title = "✨ CELESTIAL VEIL HUB ✨",
     SubTitle = "Bee Swarm Simulator Edition",
-    Icon = "rbxassetid://10723343321", -- Icon Windows Style
+    Icon = "rbxassetid://10723343321", -- Icon Fluent Windows
     Author = "Celestial Team",
-    Folder = "CelestialConfig"
+    Folder = "Celestial_BSS_Config", -- Thư mục lưu cài đặt
+    
+    OpenButton = {
+        Title = "Celestial Menu",
+        Enabled = true,
+        Draggable = true,
+        OnlyMobile = true, -- Chỉ hiện nút nổi trên điện thoại
+        Color = ColorSequence.new(Color3.fromHex("#7775F2"), Color3.fromHex("#AFADFF"))
+    }
 })
 
--- 2. Tạo các Tab (Thanh bên trái)
-local MainTab = Window:CreateTab("Trang Chủ", "home")
-local FarmTab = Window:CreateTab("Cày Thu", "shovels")
-local MiscTab = Window:CreateTab("Tiện Ích", "settings")
+-- 2. Tạo các Tab chính
+local MainTab = Window:Tab({ Title = "Trang Chủ", Icon = "solar:home-2-bold" })
+local FarmTab = Window:Tab({ Title = "Tự Động", Icon = "solar:check-square-bold" })
+local MiscTab = Window:Tab({ Title = "Tiện Ích", Icon = "solar:settings-bold" })
 
--- 3. Nội dung Tab Trang Chủ
-MainTab:AddParagraph({
-    Title = "Hệ thống",
-    Content = "Chào mừng bạn! Giao diện WindUI đã được kích hoạt thành công."
+-- ==========================================
+-- TRANG CHỦ (Thông tin & Webhook)
+-- ==========================================
+MainTab:Section({ Title = "Thông Tin Hệ Thống" })
+
+MainTab:Paragraph({
+    Title = "Người chơi: " .. game.Players.LocalPlayer.Name,
+    Content = "Trạng thái: Đang hoạt động ✅\nPhiên bản: 1.0.5",
 })
 
-MainTab:AddButton({
-    Title = "Gửi Báo Cáo Webhook",
-    Desc = "Gửi thông số mật ong hiện tại tới Discord",
+MainTab:Button({
+    Title = "Gửi Webhook Báo Cáo",
+    Desc = "Cập nhật mật ong và túi đồ lên Discord",
     Callback = function()
-        print("Đang gửi Webhook...")
-        Window:Notify({
+        -- Chèn logic Webhook của bạn ở đây
+        WindUI:Notify({
             Title = "Hệ thống",
             Content = "Đã gửi báo cáo thành công!",
             Type = "Success"
@@ -33,9 +45,14 @@ MainTab:AddButton({
     end
 })
 
--- 4. Nội dung Tab Cày Thu (Bố cục chia cột hiện đại)
-FarmTab:AddToggle({
+-- ==========================================
+-- TỰ ĐỘNG (Auto Farm)
+-- ==========================================
+FarmTab:Section({ Title = "Cấu Hình Cày Thu" })
+
+FarmTab:Toggle({
     Title = "Tự Động Đào (Auto Dig)",
+    Desc = "Tự động sử dụng Tool để thu hoạch",
     Value = false,
     Callback = function(state)
         _G.AutoDig = state
@@ -49,26 +66,36 @@ FarmTab:AddToggle({
     end
 })
 
-FarmTab:AddDropdown({
+FarmTab:Dropdown({
     Title = "Chọn Cánh Đồng",
-    Multi = false,
-    Options = {"Sunflower", "Mushroom", "Blue Flower", "Clover", "Spider"},
-    Default = "Sunflower",
+    Values = {"Sunflower", "Mushroom", "Blue Flower", "Clover", "Spider", "Bamboo"},
+    Value = "Sunflower",
     Callback = function(selected)
         print("Đã chọn cánh đồng: " .. selected)
     end
 })
 
--- 5. Tab Tiện Ích
-MiscTab:AddSlider({
-    Title = "Tốc độ chạy (WalkSpeed)",
-    Value = 16,
-    Min = 16,
-    Max = 300,
+-- ==========================================
+-- TIỆN ÍCH (Settings)
+-- ==========================================
+MiscTab:Section({ Title = "Cải Thiện Nhân Vật" })
+
+MiscTab:Slider({
+    Title = "Tốc Độ Chạy",
+    Step = 1,
+    Value = { Min = 16, Max = 300, Default = 16 },
     Callback = function(v)
         game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = v
     end
 })
 
--- Tự động mở Tab đầu tiên
+MiscTab:Button({
+    Title = "Hủy Script (Destroy)",
+    Color = Color3.fromHex("#FF4830"),
+    Callback = function()
+        Window:Destroy()
+    end
+})
+
+-- Tự động chọn Tab đầu tiên khi load
 Window:SelectTab(MainTab)
