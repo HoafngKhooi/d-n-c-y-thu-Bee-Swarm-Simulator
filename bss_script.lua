@@ -1,9 +1,8 @@
--- Gọi thư viện tự chế của bạn
--- Chú ý: Thay link bên dưới bằng link Raw chuẩn của CelestialLib.lua
+-- Gọi thư viện từ GitHub của bạn
 local CelestialLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/HoafngKhooi/d-n-c-y-thu-Bee-Swarm-Simulator/main/CelestialLib.lua"))()
 
--- 1. Khởi tạo Cửa sổ chính (Tên gọi theo hàm .new bạn đã viết)
-local Window = CelestialLib.new("✨ CELESTIAL VEIL HUB ✨")
+-- 1. Khởi tạo Cửa sổ chính
+local Window = CelestialLib.new("CELESTIAL VEIL HUB")
 
 -- 2. Tạo các Tab chính
 local MainTab = Window:CreateTab("Trang Chủ")
@@ -11,24 +10,26 @@ local FarmTab = Window:CreateTab("Tự Động")
 local MiscTab = Window:CreateTab("Tiện Ích")
 
 -- ==========================================
--- TRANG CHỦ
+-- TRANG CHỦ (Chia thành các cột thông tin)
 -- ==========================================
--- (Lưu ý: CelestialLib hiện tại chỉ có AddButton và AddToggle, 
--- nên mình chuyển Paragraph thành Button hoặc Label tùy ý)
+local InfoCol = MainTab:AddColumn("Thông Tin")
 
-MainTab:AddButton("Người chơi: " .. game.Players.LocalPlayer.Name, function()
-    print("Đây là thông tin người dùng.")
+InfoCol:AddButton("Player: " .. game.Players.LocalPlayer.DisplayName, function()
+    print("User ID: " .. game.Players.LocalPlayer.UserId)
 end)
 
-MainTab:AddButton("Gửi Webhook Báo Cáo", function()
-    -- Logic Webhook của bạn
-    print("Đang gửi báo cáo tới Discord...")
+InfoCol:AddButton("Gửi Webhook Báo Cáo", function()
+    -- Chèn logic Webhook Discord của bạn vào đây
+    print("Đã gửi dữ liệu lên Discord Webhook!")
 end)
 
 -- ==========================================
--- TỰ ĐỘNG (Auto Farm)
+-- TỰ ĐỘNG (Chia thành các cột chức năng cày)
 -- ==========================================
-FarmTab:AddToggle("Tự Động Đào (Auto Dig)", function(state)
+-- Cột bên trái: Các tính năng Farm cơ bản
+local ToolCol = FarmTab:AddColumn("Công Cụ")
+
+ToolCol:AddToggle("Tự Động Đào (Auto Dig)", function(state)
     _G.AutoDig = state
     if state then
         task.spawn(function()
@@ -44,23 +45,30 @@ FarmTab:AddToggle("Tự Động Đào (Auto Dig)", function(state)
     end
 end)
 
--- ==========================================
--- TIỆN ÍCH (Settings)
--- ==========================================
+-- Cột bên phải: Các cài đặt phụ cho Farm
+local SettingCol = FarmTab:AddColumn("Cấu Hình")
+SettingCol:AddToggle("Hút Token (Collect)", function(state)
+    print("Trạng thái hút Token: ", state)
+    -- Logic hút token sẽ chèn ở đây
+end)
 
--- Hiện tại Library của bạn chưa có Slider, 
--- tạm thời mình dùng Button để tăng tốc độ chạy nhé!
-MiscTab:AddButton("Tốc độ chạy: Siêu nhanh (100)", function()
+-- ==========================================
+-- TIỆN ÍCH (Cải thiện nhân vật)
+-- ==========================================
+local PlayerCol = MiscTab:AddColumn("Nhân Vật")
+
+PlayerCol:AddButton("Tốc độ: Siêu nhanh (100)", function()
     game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 100
 end)
 
-MiscTab:AddButton("Tốc độ chạy: Bình thường (16)", function()
+PlayerCol:AddButton("Tốc độ: Bình thường (16)", function()
     game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 16
 end)
 
-MiscTab:AddButton("Hủy Script (Destroy UI)", function()
+local SystemCol = MiscTab:AddColumn("Hệ Thống")
+SystemCol:AddButton("Hủy Script (Destroy)", function()
     Window.Gui:Destroy()
 end)
 
--- Mặc định hiển thị Tab đầu tiên
+-- Hiển thị tab đầu tiên mặc định
 MainTab.Visible = true
