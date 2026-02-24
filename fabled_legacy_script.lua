@@ -1,58 +1,80 @@
 --[[
-    Fabled Legacy - Advanced Dungeon Bot (Walk-Only)
-    UI Edition by HoafngKhooi
+    Fabled Legacy - Advanced Dungeon Bot (7 Rooms Edition)
+    Author: HoafngKhooi
 ]]
 
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local VIM = game:GetService("VirtualInputManager")
+local PathfindingService = game:GetService("PathfindingService")
 
 local Window = Rayfield:CreateWindow({
     Name = "Fabled Legacy | HoafngKhooi Hub",
-    LoadingTitle = "Đang tải Script...",
+    LoadingTitle = "Đang cấu hình 7 Rooms...",
     LoadingSubtitle = "by HoafngKhooi",
     ConfigurationSaving = {
        Enabled = true,
        FolderName = "HoafngKhooi_Fabled",
        FileName = "Config"
     },
-    KeySystem = false -- Bạn có thể bật Key System nếu muốn
+    KeySystem = false 
 })
 
--- Biến Trạng Thái (Global)
+-- Biến Trạng Thái
 _G.AutoFarm = false
 _G.AutoSkill = false
 _G.AutoDodge = false
+_G.CurrentRoom = 0
+_G.MaxRooms = 7 -- Dựa trên thông số (1/7) trong game
 
 local Players = game:GetService("Players")
-local PathfindingService = game:GetService("PathfindingService")
 local Player = Players.LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
 local Humanoid = Character:WaitForChild("Humanoid")
 local Root = Character:WaitForChild("HumanoidRootPart")
 
--- 1. HÀM TÌM QUÁI
+-- 1. HÀM TÌM QUÁI TRONG FOLDER ENEMIES
 local function getTarget()
+    local enemyFolder = workspace:FindFirstChild("Enemies") -- Quét đúng folder Enemies
     local closestTarget = nil
-    local maxDist = 100 -- Tầm quét quái
-    for _, v in pairs(workspace:GetChildren()) do
-        if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v ~= Character then
-            local dist = (Root.Position - v.PrimaryPart.Position).Magnitude
-            if dist < maxDist then
-                maxDist = dist
-                closestTarget = v
+    local maxDist = 200 
+    
+    if enemyFolder then
+        for _, v in pairs(enemyFolder:GetChildren()) do
+            if v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                local eRoot = v:FindFirstChild("HumanoidRootPart") or v.PrimaryPart
+                if eRoot then
+                    local dist = (Root.Position - eRoot.Position).Magnitude
+                    if dist < maxDist then
+                        maxDist = dist
+                        closestTarget = v
+                    end
+                end
             end
         end
     end
     return closestTarget
 end
 
--- 2. HÀM NÉ CHIÊU
-local function checkAndDodge()
-    if not _G.AutoDodge then return false end
-    for _, obj in pairs(workspace:GetChildren()) do
-        if obj:IsA("BasePart") and (obj.BrickColor == BrickColor.new("Really red") or obj.Name:find("Indicator")) then
-            local dist = (Root.Position - obj.Position).Magnitude
-            if dist < (obj.Size.X / 2 + 5) then
-                Humanoid:MoveTo(Root.Position + (Root.CFrame.RightVector * 20)) -- Né sang phải
+-- 2. HÀM TỰ DÙNG SKILL Q/E
+local function useSkills()
+    VIM:SendKeyEvent(true, "Q", false, game) -- Skill Q
+    task.wait(0.1)
+    VIM:SendKeyEvent(false, "Q", false, game)
+    task.wait(0.2)
+    VIM:SendKeyEvent(true, "E", false, game) -- Skill E
+    task.wait(0.1)
+    VIM:SendKeyEvent(false, "E", false, game)
+end
+
+-- 3. HÀM DI CHUYỂN TỚI ROOM TIẾP THEO
+local function goToRoom()
+    local info = workspace:FindFirstChild("roomInformation") -- Quét folder roomInformation
+    if info then
+        local room = info:FindFirstChild("Room" .. _G.CurrentRoom)
+        if room then
+            local part = room:FindFirstChildWhichIsA("BasePart", true)
+            if part then
+                Humanoid:MoveTo(part.Position)
                 return true
             end
         end
@@ -60,75 +82,69 @@ local function checkAndDodge()
     return false
 end
 
--- 3. HÀM DI CHUYỂN BỘ
-local function walkTo(position)
-    local path = PathfindingService:CreatePath({AgentCanJump = true})
-    path:ComputeAsync(Root.Position, position)
-    if path.Status == Enum.PathStatus.Success then
-        local waypoints = path:GetWaypoints()
-        for i, waypoint in pairs(waypoints) do
-            if not _G.AutoFarm or checkAndDodge() then break end
-            Humanoid:MoveTo(waypoint.Position)
-            if getTarget() and (Root.Position - getTarget().PrimaryPart.Position).Magnitude < 12 then break end
-            Humanoid.MoveToFinished:Wait(0.05)
+-- 4. HÀM NÉ CHIÊU
+local function checkAndDodge()
+    if not _G.AutoDodge then return false end
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj:IsA("BasePart") and (obj.BrickColor == BrickColor.new("Really red") or obj.Name:find("Indicator")) then
+            local dist = (Root.Position - obj.Position).Magnitude
+            if dist < (obj.Size.X / 2 + 5) then
+                Humanoid:MoveTo(Root.Position + (Root.CFrame.RightVector * 20)) 
+                return true
+            end
         end
     end
+    return false
 end
 
 -- TAB GIAO DIỆN
-local MainTab = Window:CreateTab("Main Farm", 4483362458) -- Icon ID
+local MainTab = Window:CreateTab("Chiến Dungeon", 4483362458)
 
 MainTab:CreateToggle({
-    Name = "Auto Dungeon (Walk Only)",
+    Name = "Auto Farm (7 Rooms Mode)",
     CurrentValue = false,
-    Callback = function(Value)
-        _G.AutoFarm = Value
-    end,
+    Callback = function(Value) _G.AutoFarm = Value end,
 })
 
 MainTab:CreateToggle({
-    Name = "Auto Use Skills",
+    Name = "Auto Skill (Q + E)",
     CurrentValue = false,
-    Callback = function(Value)
-        _G.AutoSkill = Value
-    end,
+    Callback = function(Value) _G.AutoSkill = Value end,
 })
 
 MainTab:CreateToggle({
     Name = "Smart Dodge (Né vùng đỏ)",
     CurrentValue = false,
-    Callback = function(Value)
-        _G.AutoDodge = Value
-    end,
+    Callback = function(Value) _G.AutoDodge = Value end,
 })
 
-MainTab:CreateSlider({
-   Name = "Quét quái xa (Range)",
-   Range = {30, 200},
-   Increment = 10,
-   Suffix = "Studs",
-   CurrentValue = 60,
-   Callback = function(Value)
-      -- Cập nhật tầm quét nếu cần
-   end,
+MainTab:CreateButton({
+   Name = "Reset Room Count (Về Room 0)",
+   Callback = function() _G.CurrentRoom = 0 end,
 })
 
 -- VÒNG LẶP CHÍNH
 task.spawn(function()
-    while task.wait(0.5) do
-        if _G.AutoFarm then
+    while task.wait(0.4) do
+        if _G.AutoFarm and Humanoid.Health > 0 then
             local target = getTarget()
+            
             if not checkAndDodge() then
                 if target then
-                    local dist = (Root.Position - target.PrimaryPart.Position).Magnitude
+                    -- CÓ QUÁI: Tiến tới đánh
+                    local tRoot = target:FindFirstChild("HumanoidRootPart") or target.PrimaryPart
+                    local dist = (Root.Position - tRoot.Position).Magnitude
+                    
                     if dist > 12 then
-                        walkTo(target.PrimaryPart.Position)
+                        Humanoid:MoveTo(tRoot.Position)
                     else
-                        if _G.AutoSkill then
-                            -- Gửi lệnh Skill tới Server (Ví dụ)
-                            -- game:GetService("VirtualInputManager"):SendKeyEvent(true, "Q", false, game)
-                            print("Sử dụng kỹ năng lên: " .. target.Name)
-                        end
+                        if _G.AutoSkill then useSkills() end
+                    end
+                else
+                    -- HẾT QUÁI: Đi tới Room hiện tại hoặc chuyển Room
+                    local moved = goToRoom()
+                    if not moved and _G.CurrentRoom < _G.MaxRooms then
+                        _G.CurrentRoom = _G.CurrentRoom + 1
                     end
                 end
             end
@@ -137,8 +153,7 @@ task.spawn(function()
 end)
 
 Rayfield:Notify({
-   Title = "Script Loaded!",
-   Content = "Chúc bạn cày game vui vẻ - HoafngKhooi",
-   Duration = 5,
-   Image = 4483362458,
+   Title = "Hub Loaded!",
+   Content = "Đã sẵn sàng cày 7 Rooms!",
+   Duration = 5
 })
