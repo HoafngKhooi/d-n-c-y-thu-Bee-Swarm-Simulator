@@ -4,7 +4,7 @@ local update_interval = 30
 local player = game.Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
 
--- Hàm hiển thị thông báo trong game
+-- Hàm thông báo
 local function notify(title, text)
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = title;
@@ -13,8 +13,24 @@ local function notify(title, text)
     })
 end
 
+-- Hàm quét nhiệm vụ (Quests)
+local function getQuests()
+    local questList = {}
+    pcall(function()
+        local quests = player.PlayerGui.Main.Quests.Content.ScrollingFrame
+        for _, v in pairs(quests:GetChildren()) do
+            if v:IsA("Frame") and v:FindFirstChild("Title") then
+                local qName = v.Title.Text
+                local qProg = v.Description.Text:gsub("\n", " ")
+                table.insert(questList, "📜 **" .. qName .. "**: " .. qProg)
+            end
+        end
+    end)
+    return #questList > 0 and table.concat(questList, "\n") or "Không có nhiệm vụ"
+end
+
 local function getInv()
-    local items = {"BlueExtract", "RedExtract", "SwirlWax", "TropicalDrink"}
+    local items = {"BlueExtract", "RedExtract", "SwirlWax", "TropicalDrink", "Neonberry"}
     local str = ""
     for _, name in pairs(items) do
         local count = 0
@@ -24,53 +40,31 @@ local function getInv()
     return str
 end
 
-local function getPlanters()
-    local l = {}
-    pcall(function()
-        for _, v in pairs(game.Workspace.Planters:GetChildren()) do
-            if v:FindFirstChild("Owner") and v.Owner.Value == player.Name then
-                local g = v:FindFirstChild("Growth") and v.Growth.Value or 0
-                table.insert(l, "🌱 " .. v.Name .. ": " .. math.floor(g) .. "%")
-            end
-        end
-    end)
-    return #l > 0 and table.concat(l, "\n") or "Trống"
-end
-
 local function sendToBot()
     local data = {
         ["player_name"] = player.Name,
         ["honey"] = tostring(player.leaderstats.Honey.Value),
-        ["planters"] = getPlanters(),
         ["inventory"] = getInv(),
-        ["quests"] = "Đang quét...",
+        ["quests"] = getQuests(), -- Quét quest thật
         ["time"] = os.date("%X")
     }
+
     local payload = HttpService:JSONEncode(data)
     local request = syn and syn.request or http_request or request or httprequest
     
     if request then
-        local success, result = pcall(function()
-            return request({
-                Url = termux_url, 
-                Method = "POST", 
-                Headers = {["Content-Type"] = "application/json"}, 
+        pcall(function()
+            request({
+                Url = termux_url,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
                 Body = payload
             })
         end)
-        
-        -- Nếu gửi tới Termux thành công thì báo trong game
-        if success then
-            print("Sent to Termux!")
-        else
-            notify("Lỗi Kết Nối", "Không tìm thấy Termux (Port 5000)")
-        end
     end
 end
 
--- Thông báo ngay khi nhấn Execute
-notify("BSS System", "Đang khởi chạy kết nối Termux...")
-
+notify("BSS System", "Kết nối Termux thành công!")
 task.spawn(function()
     while true do
         sendToBot()
