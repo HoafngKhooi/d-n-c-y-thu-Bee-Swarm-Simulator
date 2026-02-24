@@ -1,51 +1,53 @@
 --[[
-    Fabled Legacy - Walk-Only Dungeon Bot
-    Tính năng: Tự tìm quái, Dùng skill, Né vùng đỏ (Indicator)
+    Fabled Legacy - Advanced Dungeon Bot (Walk-Only)
+    Author: HoafngKhooi
 ]]
 
-local PathfindingService = game:GetService("PathfindingService")
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Root = Character:WaitForChild("HumanoidRootPart")
-local Humanoid = Character:WaitForChild("Humanoid")
+local PathfindingService = game:GetService("PathfindingService")
+local RunService = game:GetService("RunService")
 
--- Cấu hình
-local CONFIG = {
-    DetectionRange = 100, -- Tầm quét quái
-    SkillRange = 30,      -- Tầm xả skill
-    DodgeDistance = 25,   -- Khoảng cách né vùng đỏ
-    Skills = {"Q", "E", "R", "V"} -- Các phím skill
+local Player = Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local Root = Character:WaitForChild("HumanoidRootPart")
+
+-- CÀI ĐẶT CHUNG
+local Settings = {
+    AutoSkill = true,
+    DodgeRedZones = true,
+    SkillKeys = {"Q", "E", "R", "F"},
+    DetectionRadius = 60
 }
 
--- 1. Hàm tìm quái gần nhất
-local function getNearestEnemy()
-    local nearest = nil
-    local minDist = CONFIG.DetectionRange
+-- 1. HÀM TÌM QUÁI (Targeting)
+local function getTarget()
+    local closestTarget = nil
+    local maxDist = Settings.DetectionRadius
     
-    -- Lưu ý: Kiểm tra folder chứa quái trong workspace của Fabled Legacy
-    -- Thường là workspace.Enemies hoặc workspace.Mobs
-    for _, enemy in pairs(workspace:GetChildren()) do
-        if enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 and enemy ~= Character then
-            local dist = (Root.Position - enemy.PrimaryPart.Position).Magnitude
-            if dist < minDist then
-                minDist = dist
-                nearest = enemy
+    -- Fabled Legacy thường để quái trong workspace.Enemies hoặc Mob
+    for _, v in pairs(workspace:GetChildren()) do
+        if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v ~= Character then
+            local dist = (Root.Position - v.PrimaryPart.Position).Magnitude
+            if dist < maxDist then
+                maxDist = dist
+                closestTarget = v
             end
         end
     end
-    return nearest
+    return closestTarget
 end
 
--- 2. Hàm né chiêu (Logic né vùng báo đỏ)
-local function dodgeAOE()
-    -- Quét các Part hình tròn/vuông màu đỏ xuất hiện dưới đất (Indicators)
+-- 2. HÀM NÉ CHIÊU (Dodge Logic)
+-- Quét các Part cảnh báo màu đỏ trên mặt đất
+local function checkAndDodge()
     for _, obj in pairs(workspace:GetChildren()) do
-        if obj:IsA("BasePart") and (obj.Name:find("Indicator") or obj.Transparency > 0.5) then
+        -- Kiểm tra các vùng đỏ (thường là Part có màu đỏ hoặc tên "Indicator")
+        if obj:IsA("BasePart") and (obj.BrickColor == BrickColor.new("Really red") or obj.Name:find("Zone")) then
             local dist = (Root.Position - obj.Position).Magnitude
-            if dist < obj.Size.X / 2 + 5 then -- Nếu đang đứng trong vùng đỏ
-                -- Di chuyển lùi lại hoặc sang ngang
-                Humanoid:MoveTo(Root.Position + (Root.CFrame.RightVector * CONFIG.DodgeDistance))
+            if dist < (obj.Size.X / 2 + 3) then
+                -- Lệnh nhảy hoặc lướt ra xa
+                Humanoid:MoveTo(Root.Position + (Root.CFrame.RightVector * 15))
                 return true
             end
         end
@@ -53,45 +55,47 @@ local function dodgeAOE()
     return false
 end
 
--- 3. Hàm di chuyển thông minh (Pathfinding)
-local function moveToTarget(targetPos)
-    local path = PathfindingService:CreatePath({AgentCanJump = true, AgentRadius = 3})
-    path:ComputeAsync(Root.Position, targetPos)
+-- 3. HÀM DI CHUYỂN BỘ (Pathfinding)
+local function walkTo(position)
+    local path = PathfindingService:CreatePath({AgentCanJump = true})
+    path:ComputeAsync(Root.Position, position)
     
     if path.Status == Enum.PathStatus.Success then
         local waypoints = path:GetWaypoints()
-        for i = 1, math.min(#waypoints, 3) do -- Chỉ lấy vài điểm đầu để cập nhật liên tục
-            if dodgeAOE() then break end -- Ưu tiên né chiêu
-            Humanoid:MoveTo(waypoints[i].Position)
+        for i, waypoint in pairs(waypoints) do
+            if checkAndDodge() then break end -- Ưu tiên né chiêu
+            Humanoid:MoveTo(waypoint.Position)
+            
+            -- Nếu có quái gần, dừng lại đánh một chút rồi đi tiếp
+            if getTarget() and (Root.Position - getTarget().PrimaryPart.Position).Magnitude < 15 then
+                break
+            end
             Humanoid.MoveToFinished:Wait(0.1)
         end
     end
 end
 
--- 4. Main Loop (Vòng lặp chính)
-spawn(function()
+-- 4. VÒNG LẶP CHÍNH (Main Loop)
+task.spawn(function()
     while task.wait(0.5) do
-        if not Character or Humanoid.Health <= 0 then break end
+        local target = getTarget()
         
-        local enemy = getNearestEnemy()
-        if enemy then
-            local dist = (Root.Position - enemy.PrimaryPart.Position).Magnitude
-            
-            if dist > CONFIG.SkillRange then
-                moveToTarget(enemy.PrimaryPart.Position)
-            else
-                -- Tấn công khi vào tầm
-                for _, key in pairs(CONFIG.Skills) do
-                    -- Giả lập nhấn phím (Cần VirtualInputManager hoặc RemoteEvent của game)
-                    -- Ví dụ gọi qua Remote:
-                    -- game:GetService("ReplicatedStorage").Remotes.Skill:FireServer(key)
-                    print("Sử dụng Skill: " .. key)
+        if not checkAndDodge() then
+            if target then
+                local dist = (Root.Position - target.PrimaryPart.Position).Magnitude
+                if dist > 10 then
+                    walkTo(target.PrimaryPart.Position)
+                else
+                    -- Xả Skill khi đủ gần
+                    for _, key in pairs(Settings.SkillKeys) do
+                        -- Thay thế đoạn này bằng RemoteEvent của game sau khi dùng SimpleSpy
+                        print("Đang xả chiêu: " .. key)
+                    end
                 end
+            else
+                -- Nếu không có quái, đi tìm checkpoint tiếp theo (Cổng Dungeon)
+                -- walkTo(Vector3.new(x, y, z))
             end
-        else
-            -- Nếu không có quái, đi tới cổng/điểm checkpoint tiếp theo
-            -- moveToTarget(Vector3.new(x, y, z)) 
         end
     end
 end)
-
