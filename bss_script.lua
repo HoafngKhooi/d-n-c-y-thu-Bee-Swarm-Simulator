@@ -1,28 +1,22 @@
-local termux_url = "http://127.0.0.1:5000/update" 
+local termux_url = "http://192.168.1.3:5000/update" -- KIỂM TRA LẠI SỐ NÀY TRONG TERMUX
 local update_interval = 30 
 
 local player = game.Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
 
--- Hàm thông báo
 local function notify(title, text)
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = title;
-        Text = text;
-        Duration = 5;
+        Title = title; Text = text; Duration = 5;
     })
 end
 
--- Hàm quét nhiệm vụ (Quests)
 local function getQuests()
     local questList = {}
     pcall(function()
         local quests = player.PlayerGui.Main.Quests.Content.ScrollingFrame
         for _, v in pairs(quests:GetChildren()) do
             if v:IsA("Frame") and v:FindFirstChild("Title") then
-                local qName = v.Title.Text
-                local qProg = v.Description.Text:gsub("\n", " ")
-                table.insert(questList, "📜 **" .. qName .. "**: " .. qProg)
+                table.insert(questList, "📜 **" .. v.Title.Text .. "**: " .. v.Description.Text:gsub("\n", " "))
             end
         end
     end)
@@ -41,18 +35,23 @@ local function getInv()
 end
 
 local function sendToBot()
-    local data = {
-        ["player_name"] = player.Name,
-        ["honey"] = tostring(player.leaderstats.Honey.Value),
-        ["inventory"] = getInv(),
-        ["quests"] = getQuests(), -- Quét quest thật
-        ["time"] = os.date("%X")
-    }
+    local success_data, data = pcall(function()
+        return {
+            ["player_name"] = player.Name,
+            ["honey"] = tostring(player.leaderstats.Honey.Value),
+            ["inventory"] = getInv(),
+            ["quests"] = getQuests(),
+            ["time"] = os.date("%X")
+        }
+    end)
+
+    if not success_data then return end
 
     local payload = HttpService:JSONEncode(data)
     local request = syn and syn.request or http_request or request or httprequest
     
     if request then
+        -- Bọc pcall để tránh văng script nếu sai IP
         pcall(function()
             request({
                 Url = termux_url,
@@ -64,7 +63,9 @@ local function sendToBot()
     end
 end
 
-notify("BSS System", "Kết nối Termux thành công!")
+-- Chỉ thông báo khi script bắt đầu chạy
+notify("BSS System", "Đang gửi dữ liệu tới Bot...")
+
 task.spawn(function()
     while true do
         sendToBot()
