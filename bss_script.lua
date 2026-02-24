@@ -1,14 +1,14 @@
--- [[ CẤU HÌNH CHUẨN - ĐÃ FIX LỖI LOAD ]]
--- Dùng lại link Spidey Bot đã thông mạng ở Ảnh 1
+-- [[ CẤU HÌNH CHÍNH THỨC - ĐÃ THÊM ĐỘ TRỄ CHỐNG LỖI ]]
+-- Dùng link Spidey Bot đã thông mạng ở ảnh test của ông
 local webhook_url = "https://webhook.lewisakura.moe/api/webhooks/1470318869497171989/ojxHWFvDGsQwuz_T361566RHNK9ZbnrB77O6N233E_U599E0S4892YF871Y7"
 local update_interval = 30 
 
 local player = game.Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
 
--- FIX LỖI: Đợi game load xong bảng điểm mới chạy tiếp
+-- CHẬM LẠI: Đợi game tải xong xuôi (Tránh lỗi leaderstats ở Ảnh 4, 5, 7)
 repeat 
-    task.wait(1) 
+    task.wait(2) -- Kiểm tra mỗi 2 giây
 until player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Honey")
 
 local function getInv()
@@ -30,13 +30,14 @@ local function sendToWebhook()
             ["embeds"] = {{
                 ["title"] = "🐝 BSS STATUS: " .. player.Name,
                 ["fields"] = {
-                    {["name"] = "🍯 Honey", ["value"] = "```" .. tostring(player.leaderstats.Honey.Value) .. "```"},
-                    {["name"] = "📦 Inventory", ["value"] = getInv()}
+                    {["name"] = "🍯 Honey", ["value"] = "```" .. tostring(player.leaderstats.Honey.Value) .. "```", ["inline"] = false},
+                    {["name"] = "📦 Inventory", ["value"] = getInv(), ["inline"] = true}
                 },
                 ["color"] = 16776960,
-                ["footer"] = {["text"] = "Cập nhật: " .. os.date("%X")}
+                ["footer"] = {["text"] = "Cập nhật lúc: " .. os.date("%X")}
             }}
         }
+        
         pcall(function()
             request({
                 Url = webhook_url,
@@ -48,15 +49,15 @@ local function sendToWebhook()
     end
 end
 
--- Thông báo khi đã sẵn sàng
+-- Thông báo khi hệ thống đã "ngấm" dữ liệu
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "BSS System";
-    Text = "Dữ liệu Honey đã load xong!";
+    Title = "BSS Bridge";
+    Text = "Hệ thống đã nhận diện được mật ong! Đang gửi dữ liệu...";
     Duration = 5;
 })
 
 task.spawn(function()
-    sendToWebhook() -- Gửi phát đầu tiên ngay khi load xong
+    sendToWebhook() -- Gửi lần đầu ngay khi load xong
     while true do
         task.wait(update_interval)
         sendToWebhook()
