@@ -1,12 +1,14 @@
+-- [[ CONFIG ]]
+-- Link này trỏ về Server Flask đang chạy trên Termux của ông
+local termux_url = "http://127.0.0.1:5000/update" 
+local update_interval = 30 -- Cập nhật mỗi 30s cho nhanh
+
 local player = game.Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
 
--- Cấu hình: 127.0.0.1 là địa chỉ nội bộ của điện thoại ông
-local termux_url = "http://127.0.0.1:5000/update" 
-local update_interval = 30 -- 30 giây cập nhật 1 lần cho mượt
-
+-- [[ HÀM LẤY DỮ LIỆU ]]
 local function getInv()
-    local items = {"BlueExtract", "RedExtract", "SwirlWax", "TropicalDrink", "Neonberry"}
+    local items = {"BlueExtract", "RedExtract", "SwirlWax", "TropicalDrink"}
     local str = ""
     for _, name in pairs(items) do
         local count = 0
@@ -29,41 +31,35 @@ local function getPlanters()
     return #l > 0 and table.concat(l, "\n") or "Trống"
 end
 
+-- [[ HÀM GỬI VỀ BOT TERMUX ]]
 local function sendToBot()
     local data = {
         ["player_name"] = player.Name,
         ["honey"] = tostring(player.leaderstats.Honey.Value),
         ["planters"] = getPlanters(),
-        ["inventory"] = getInv(),
-        ["quests"] = "Đang quét...", -- Phần này mình sẽ làm sau
+        ["inventory"] = getInv(), -- Gửi kho đồ để Bot hiện khi bấm nút
+        ["quests"] = "Đang cày...", -- Sau này ông thêm hàm quét quest ở đây
         ["time"] = os.date("%X")
     }
 
     local payload = HttpService:JSONEncode(data)
-    
-    -- Sử dụng hàm request của Executor (Delta/Solara)
     local request = syn and syn.request or http_request or request or httprequest
     
     if request then
-        local success, result = pcall(function()
-            return request({
+        pcall(function()
+            request({
                 Url = termux_url,
                 Method = "POST",
                 Headers = {["Content-Type"] = "application/json"},
                 Body = payload
             })
         end)
-        
-        if success then
-            print("✅ Đã gửi dữ liệu về Termux!")
-        else
-            print("❌ Lỗi kết nối Termux: " .. tostring(result))
-        end
     end
 end
 
--- Vòng lặp gửi dữ liệu
+-- [[ VÒNG LẶP ]]
 task.spawn(function()
+    print("🚀 BSS to Termux System Started!")
     while true do
         sendToBot()
         task.wait(update_interval)
