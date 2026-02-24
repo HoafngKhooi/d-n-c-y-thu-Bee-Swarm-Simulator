@@ -1,105 +1,88 @@
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+-- Ép tải bản mới bằng cách thêm tick() vào link (nếu cần load lại link chính)
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
--- 1. Tạo Cửa Sổ
-local Window = OrionLib:MakeWindow({
-    Name = "✨ CELESTIAL HUB ✨", 
-    HidePremium = false, 
-    SaveConfig = true, 
-    ConfigFolder = "CelestialBSS",
-    IntroEnabled = true,
-    IntroText = "Celestial Veil Edition"
+local Window = Fluent:CreateWindow({
+    Title = "✨ CELESTIAL HUB ✨",
+    SubTitle = "Celestial Veil Edition",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = false, -- Tắt Acrylic để nhìn xuyên qua ảnh nền rõ hơn
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
 })
 
--- 2. Hàm chèn ảnh nền (Ép hiển thị trên Orion)
-local function ApplyWallpaper()
-    task.wait(0.5) -- Đợi UI khởi tạo
-    local CoreGui = game:GetService("CoreGui")
-    local OrionUI = CoreGui:FindFirstChild("Orion")
-    
-    if OrionUI then
-        local Main = OrionUI:FindFirstChild("Main")
-        if Main then
-            -- Tạo ImageLabel làm nền
+-- HÀM CHÈN ẢNH NỀN (Tối ưu cho Fluent)
+local function AddWallpaper()
+    -- Đợi cho đến khi Fluent thực sự tạo ra Folder trong CoreGui
+    local FluentGui = game:GetService("CoreGui"):WaitForChild("FluentGui", 5)
+    if FluentGui then
+        local target = FluentGui:FindFirstChild("Main")
+        if target then
+            -- Xóa hình nền cũ nếu có
+            if target:FindFirstChild("CelestialBackground") then
+                target.CelestialBackground:Destroy()
+            end
+
             local Bg = Instance.new("ImageLabel")
-            Bg.Name = "CelestialBg"
-            Bg.Parent = Main
+            Bg.Name = "CelestialBackground"
+            Bg.Parent = target
             Bg.Size = UDim2.new(1, 0, 1, 0)
-            Bg.Position = UDim2.new(0, 0, 0, 0)
-            Bg.Image = "rbxassetid://338833954" -- ID Wallpaper bạn chọn
-            Bg.ImageTransparency = 0.5 -- Độ mờ để không che chữ
+            Bg.ZIndex = -1 
+            Bg.Image = "rbxassetid://338833954" -- Wallpaper ổn định
+            Bg.ImageTransparency = 0.6 -- Độ mờ ảnh
             Bg.BackgroundTransparency = 1
             Bg.ScaleType = Enum.ScaleType.Crop
-            Bg.ZIndex = 0 -- Nằm dưới các Tab
             
-            -- Làm mờ các lớp Frame mặc định của Orion để lộ ảnh bên dưới
-            for _, v in pairs(Main:GetChildren()) do
-                if v:IsA("Frame") and v.Name ~= "CelestialBg" then
-                    v.BackgroundTransparency = 0.8
-                end
-            end
-            
-            -- Hiệu ứng dải sáng chạy ngang (Vibe động)
+            -- Hiệu ứng Gradient động (Lấp lánh)
             local Gradient = Instance.new("UIGradient", Bg)
             Gradient.Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Color3.fromRGB(150, 150, 255)),
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(100, 100, 255)),
                 ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(150, 150, 255))
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 100, 255))
             })
             
             task.spawn(function()
-                local TS = game:GetService("TweenService")
                 while true do
+                    local t = game:GetService("TweenService"):Create(Gradient, TweenInfo.new(5, Enum.EasingStyle.Linear), {Offset = Vector2.new(1, 0)})
                     Gradient.Offset = Vector2.new(-1, 0)
-                    local tween = TS:Create(Gradient, TweenInfo.new(5, Enum.EasingStyle.Linear), {Offset = Vector2.new(1, 0)})
-                    tween:Play()
-                    tween.Completed:Wait()
+                    t:Play()
+                    t.Completed:Wait()
                 end
             end)
         end
     end
 end
 
--- Chạy hàm dán skin
-task.spawn(ApplyWallpaper)
+-- Chạy hàm thêm nền
+task.spawn(AddWallpaper)
 
--- 3. Cấu trúc các Tab
-local Tab = Window:MakeTab({
-	Name = "Trang Chủ",
-	Icon = "rbxassetid://4483345998",
-	PremiumOnly = false
+-- Cấu trúc Tab
+local Tabs = {
+    Main = Window:AddTab({ Title = "Trang Chủ", Icon = "home" }),
+    Misc = Window:AddTab({ Title = "Tiện ích", Icon = "package" })
+}
+
+Tabs.Main:AddParagraph({
+    Title = "Hệ thống",
+    Content = "Đã sửa lỗi cache. Giao diện Fluent hiện đã sẵn sàng."
 })
 
-Tab:AddLabel("Hệ thống giao diện Celestial đã sẵn sàng")
-
-Tab:AddButton({
-	Name = "Test Notification",
-	Callback = function()
-        OrionLib:MakeNotification({
-            Name = "Thông báo",
-            Content = "Giao diện Orion đang chạy rất tốt!",
-            Image = "rbxassetid://4483345998",
-            Time = 5
-        })
-	end    
+Tabs.Main:AddButton({
+    Title = "Gửi Webhook Test",
+    Callback = function()
+        print("Đang gửi dữ liệu...")
+    end
 })
 
-local Tab2 = Window:MakeTab({
-	Name = "Tiện Ích",
-	Icon = "rbxassetid://4483345998",
-	PremiumOnly = false
+Tabs.Misc:AddSlider("WalkSpeed", {
+    Title = "Tốc độ chạy",
+    Default = 16,
+    Min = 16,
+    Max = 300,
+    Rounding = 1,
+    Callback = function(Value)
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
+    end
 })
 
-Tab2:AddSlider({
-	Name = "Tốc độ chạy",
-	Min = 16,
-	Max = 500,
-	Default = 16,
-	Color = Color3.fromRGB(255,255,255),
-	Increment = 1,
-	ValueName = "Speed",
-	Callback = function(Value)
-		game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
-	end    
-})
-
-OrionLib:Init()
+Window:SelectTab(1)
