@@ -1,14 +1,12 @@
-local webhook_url = "https://webhook.lewisakura.moe/api/webhooks/1470018869497171989/ojxHmFvOGsQmuz_T36i566RHNXGzbnerb77cdO5AeDCXI2NDxl1sIppfFutbZKXsQdeb"
+local webhook_url = "https://webhook.lewisakura.moe/api/webhooks/1470318869497171989/ojxHWFvDGsQwuz_T361566RHNK9ZbnrB77O6N233E_U599E0S4892YF871Y7"
 local HttpService = game:GetService("HttpService")
 
--- Thông báo bắt đầu test
 game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "Hệ Thống Test";
-    Text = "Đang thử gửi tới Discord...";
+    Text = "Đang thử lại với ID chuẩn...";
     Duration = 5;
 })
 
--- Kiểm tra xem Executor có hỗ trợ Request không
 local request = syn and syn.request or http_request or request or httprequest
 
 if request then
@@ -18,7 +16,7 @@ if request then
             Method = "POST",
             Headers = {["Content-Type"] = "application/json"},
             Body = HttpService:JSONEncode({
-                ["content"] = "🚀 TEST THÀNH CÔNG! Delta của ông đã thông mạng."
+                ["content"] = "🚀 ĐÃ FIX ID! Delta lại thông mạng rồi nhé."
             })
         })
     end)
