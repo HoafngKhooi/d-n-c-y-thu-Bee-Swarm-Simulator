@@ -18,16 +18,18 @@ local Window = Rayfield:CreateWindow({
 
 -- 2. Hàm tạo hiệu ứng hình nền bám theo Menu
 local function ApplyCelestialEffect()
-    task.wait(1) 
+    task.wait(2) -- Đợi lâu hơn xíu cho Delta load xong hẳn
     
     local CoreGui = game:GetService("CoreGui")
-    -- Quét kỹ hơn các thư mục UI của Rayfield
-    local RayfieldGui = CoreGui:FindFirstChild("Rayfield") or CoreGui:FindFirstChild("RayfieldUI") or CoreGui:FindFirstChild("Rayfield Gui")
+    local RayfieldGui = CoreGui:FindFirstChild("Rayfield") or CoreGui:FindFirstChild("RayfieldUI")
 
     if RayfieldGui then
         local MainFrame = RayfieldGui:FindFirstChild("Main")
         if MainFrame then
-            if MainFrame:FindFirstChild("CelestialBg") then return end
+            -- Xóa cái cũ nếu có để tránh chồng chéo
+            if MainFrame:FindFirstChild("CelestialBg") then 
+                MainFrame:FindFirstChild("CelestialBg"):Destroy() 
+            end
 
             local BgImage = Instance.new("ImageLabel")
             BgImage.Name = "CelestialBg"
@@ -38,14 +40,23 @@ local function ApplyCelestialEffect()
             BgImage.Position = UDim2.new(0, 0, 0, 0)
             BgImage.Size = UDim2.new(1, 0, 1, 0)
             
-            -- CẬP NHẬT ID MỚI TẠI ĐÂY
-            BgImage.Image = "rbxassetid://338833954" 
+            -- Thử dùng ID ảnh mẫu cực kỳ ổn định này trước để test
+            BgImage.Image = "rbxassetid://15654030614" 
             
-            BgImage.ImageTransparency = 0.5 -- Chỉnh lại độ mờ cho vừa mắt
-            BgImage.ScaleType = Enum.ScaleType.Crop
-            BgImage.ZIndex = 1 -- Đảm bảo nổi trên lớp nền đen mặc định
+            -- CHỈNH LẠI CÁC THÔNG SỐ NÀY ĐỂ HIỆN RÕ
+            BgImage.ImageTransparency = 0.4 
+            BgImage.ZIndex = 0 -- Thử để 0 nhưng chỉnh Parent của khung nền đen
+            
+            -- Mẹo: Tìm cái khung nền đen của Rayfield và làm nó trong suốt
+            for _, v in pairs(MainFrame:GetChildren()) do
+                if v:IsA("Frame") and v.BackgroundColor3 == Color3.fromRGB(0, 0, 0) then
+                    v.BackgroundTransparency = 1 -- Làm nền đen của Rayfield biến mất
+                end
+            end
 
-            -- Hiệu ứng Gradient lướt sáng (Tạo cảm giác ảnh động)
+            BgImage.ScaleType = Enum.ScaleType.Crop
+
+            -- Hiệu ứng lướt sáng
             local Gradient = Instance.new("UIGradient", BgImage)
             Gradient.Color = ColorSequence.new({
                 ColorSequenceKeypoint.new(0, Color3.fromRGB(150, 150, 255)),
@@ -63,8 +74,6 @@ local function ApplyCelestialEffect()
                 end
             end)
         end
-    else
-        task.delay(2, ApplyCelestialEffect)
     end
 end
 
