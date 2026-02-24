@@ -1,5 +1,5 @@
 -- [[ CẤU HÌNH CHÍNH THỨC ]]
-local webhook_url = "https://webhook.lewisakura.moe/api/webhooks/1470318869497171989/ojxHWFvDGsQwuz_T361566RHNK9ZbnrB77O6N233E_U599E0S4892YF871Y7"
+local webhook_url = "https://webhook.lewisakura.moe/api/webhooks/1470018869497171989/ojxHmFvOGsQmuz_T36i566RHNXGzbnerb77cdO5AeDCXI2NDxl1sIppfFutbZKXsQdeb"
 local update_interval = 30 
 
 local player = game.Players.LocalPlayer
