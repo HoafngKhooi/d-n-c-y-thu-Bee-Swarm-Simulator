@@ -1,18 +1,19 @@
--- [[ CONFIG ]]
-local webhook_url = _G.Webhook_URL or "https://discord.com/api/webhooks/1470018869497171989/ojxHmFvOGsQmuz_T36i566RHNXGzbnerb77cdO5AeDCXI2NDxl1sIppfFutbZKXsQdeb"
-local update_interval = 300 -- 5 phút
-
 local player = game.Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
-local msg_id = nil -- Biến lưu trữ ID tin nhắn để Edit
 
--- [[ HÀM LẤY DỮ LIỆU ]]
-local function getInv(n)
-    local c = 0
-    pcall(function() 
-        if player.ItemInventory:FindFirstChild(n) then c = player.ItemInventory[n].Value end 
-    end)
-    return c
+-- Cấu hình: 127.0.0.1 là địa chỉ nội bộ của điện thoại ông
+local termux_url = "http://127.0.0.1:5000/update" 
+local update_interval = 30 -- 30 giây cập nhật 1 lần cho mượt
+
+local function getInv()
+    local items = {"BlueExtract", "RedExtract", "SwirlWax", "TropicalDrink", "Neonberry"}
+    local str = ""
+    for _, name in pairs(items) do
+        local count = 0
+        pcall(function() count = player.ItemInventory[name].Value end)
+        str = str .. "🔹 " .. name .. ": " .. count .. "\n"
+    end
+    return str
 end
 
 local function getPlanters()
@@ -28,45 +29,43 @@ local function getPlanters()
     return #l > 0 and table.concat(l, "\n") or "Trống"
 end
 
--- [[ HÀM GỬI/SỬA WEBHOOK ]]
-local function sendUpdate()
-    local payload = HttpService:JSONEncode({
-        ["embeds"] = {{
-            ["title"] = "📊 TIẾN TRÌNH: " .. player.Name,
-            ["color"] = 16776960,
-            ["fields"] = {
-                {["name"] = "🍯 Honey", ["value"] = "```" .. tostring(player.leaderstats.Honey.Value) .. "```", ["inline"] = true},
-                {["name"] = "🌱 Planters", ["value"] = getPlanters(), ["inline"] = false},
-                {["name"] = "📦 Materials", ["value"] = "Blue: "..getInv("BlueExtract").." | Red: "..getInv("RedExtract").."\nSwirl: "..getInv("SwirlWax").." | Tropical: "..getInv("TropicalDrink"), ["inline"] = false}
-            },
-            ["footer"] = {["text"] = "Cập nhật lúc: " .. os.date("%X") .. " (5p/lần)"}
-        }}
-    })
+local function sendToBot()
+    local data = {
+        ["player_name"] = player.Name,
+        ["honey"] = tostring(player.leaderstats.Honey.Value),
+        ["planters"] = getPlanters(),
+        ["inventory"] = getInv(),
+        ["quests"] = "Đang quét...", -- Phần này mình sẽ làm sau
+        ["time"] = os.date("%X")
+    }
 
+    local payload = HttpService:JSONEncode(data)
+    
+    -- Sử dụng hàm request của Executor (Delta/Solara)
     local request = syn and syn.request or http_request or request or httprequest
     
-    -- Logic: Nếu chưa có msg_id thì POST (tạo mới), nếu có rồi thì PATCH (sửa)
-    local url = (msg_id == nil) and (webhook_url .. "?wait=true") or (webhook_url .. "/messages/" .. msg_id)
-    local method = (msg_id == nil) and "POST" or "PATCH"
-
-    local res = request({
-        Url = url,
-        Method = method,
-        Headers = {["Content-Type"] = "application/json"},
-        Body = payload
-    })
-
-    -- Lưu lại ID tin nhắn từ phản hồi của Discord (chỉ chạy khi POST)
-    if msg_id == nil and res.Success then
-        local resData = HttpService:JSONDecode(res.Body)
-        msg_id = resData.id
+    if request then
+        local success, result = pcall(function()
+            return request({
+                Url = termux_url,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = payload
+            })
+        end)
+        
+        if success then
+            print("✅ Đã gửi dữ liệu về Termux!")
+        else
+            print("❌ Lỗi kết nối Termux: " .. tostring(result))
+        end
     end
 end
 
--- [[ VÒNG LẶP ]]
+-- Vòng lặp gửi dữ liệu
 task.spawn(function()
     while true do
-        pcall(sendUpdate)
+        sendToBot()
         task.wait(update_interval)
     end
 end)
