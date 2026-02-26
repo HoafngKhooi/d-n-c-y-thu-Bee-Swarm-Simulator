@@ -52,17 +52,21 @@ function CelestialLib.new(title)
     self.Gui.Parent = game:GetService("CoreGui")
     self.Gui.ResetOnSpawn = false
 
-    -- Khung chính có Background Image
-    self.Main = Instance.new("ImageLabel") -- Đổi thành ImageLabel để làm nền
+        -- Khung chính với Skin hình nền Anime
+    self.Main = Instance.new("ImageLabel") 
+    self.Main.Name = "MainFrame"
     self.Main.Size = UDim2.new(0, 550, 0, 380)
     self.Main.Position = UDim2.new(0.5, -275, 0.5, -190)
     self.Main.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    self.Main.Image = "rbxassetid://1050467386" -- ID Hình nền bạn yêu cầu
-    self.Main.ScaleType = Enum.ScaleType.Crop
+    
+    -- THAY ID Ở ĐÂY: ID này là ID đã được convert sang Image ID
+    self.Main.Image = "rbxassetid://6073743371" 
+    
+    self.Main.ScaleType = Enum.ScaleType.Crop -- Đảm bảo ảnh phủ kín menu
     self.Main.ClipsDescendants = true
     self.Main.Active = true
     self.Main.Parent = self.Gui
-    AddVisuals(self.Main, 12, Color3.fromRGB(100, 100, 120), 1.5)
+    AddVisuals(self.Main, 12, Color3.fromRGB(255, 255, 255), 1.5) -- Viền trắng cho sang
 
     -- Lớp phủ tối nhẹ để nổi bật chữ (Overlay)
     local Overlay = Instance.new("Frame")
