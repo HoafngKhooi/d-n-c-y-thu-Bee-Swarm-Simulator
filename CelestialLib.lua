@@ -4,14 +4,21 @@ CelestialLib.__index = CelestialLib
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
--- Hàm hỗ trợ bo góc
-local function RoundElement(obj, radius)
+-- Hàm hỗ trợ bo góc và thêm viền (Stroke)
+local function AddVisuals(obj, radius, strokeColor, thickness)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, radius)
     corner.Parent = obj
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = strokeColor or Color3.fromRGB(255, 255, 255)
+    stroke.Thickness = thickness or 1
+    stroke.Transparency = 0.6
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Parent = obj
 end
 
--- Hàm hỗ trợ kéo thả (Chỉ định rõ vùng kéo dragHandle và khung di chuyển mainFrame)
+-- Hàm hỗ trợ kéo thả (Chỉ kéo ở TopBar)
 local function MakeDraggable(dragHandle, mainFrame)
     local dragging, dragInput, dragStart, startPos
     dragHandle.InputBegan:Connect(function(input)
@@ -40,28 +47,40 @@ end
 function CelestialLib.new(title)
     local self = setmetatable({}, CelestialLib)
     
-    -- Main GUI
     self.Gui = Instance.new("ScreenGui")
     self.Gui.Name = "Celestial_UI"
     self.Gui.Parent = game:GetService("CoreGui")
     self.Gui.ResetOnSpawn = false
 
-    -- Main Frame
-    self.Main = Instance.new("Frame")
+    -- Khung chính có Background Image
+    self.Main = Instance.new("ImageLabel") -- Đổi thành ImageLabel để làm nền
     self.Main.Size = UDim2.new(0, 550, 0, 380)
     self.Main.Position = UDim2.new(0.5, -275, 0.5, -190)
-    self.Main.BackgroundColor3 = Color3.fromRGB(12, 12, 17)
+    self.Main.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    self.Main.Image = "rbxassetid://1050467386" -- ID Hình nền bạn yêu cầu
+    self.Main.ScaleType = Enum.ScaleType.Crop
     self.Main.ClipsDescendants = true
+    self.Main.Active = true
     self.Main.Parent = self.Gui
-    RoundElement(self.Main, 10)
+    AddVisuals(self.Main, 12, Color3.fromRGB(100, 100, 120), 1.5)
 
-    -- 1. THANH TOPBAR (Vùng khoanh đỏ - Chỉ kéo ở đây)
+    -- Lớp phủ tối nhẹ để nổi bật chữ (Overlay)
+    local Overlay = Instance.new("Frame")
+    Overlay.Size = UDim2.new(1, 0, 1, 0)
+    Overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    Overlay.BackgroundTransparency = 0.45 -- Giữ ảnh nhưng làm tối một chút để dễ nhìn menu
+    Overlay.ZIndex = 0
+    Overlay.Parent = self.Main
+    AddVisuals(Overlay, 12, Color3.fromRGB(0,0,0), 0)
+
+    -- TopBar
     local TopBar = Instance.new("Frame")
     TopBar.Name = "TopBar"
     TopBar.Size = UDim2.new(1, 0, 0, 45)
     TopBar.BackgroundTransparency = 1
+    TopBar.ZIndex = 2
     TopBar.Parent = self.Main
-    MakeDraggable(TopBar, self.Main) -- Kích hoạt kéo thả cho thanh tiêu đề
+    MakeDraggable(TopBar, self.Main)
 
     local TitleLabel = Instance.new("TextLabel")
     TitleLabel.Text = "  " .. title
@@ -73,18 +92,16 @@ function CelestialLib.new(title)
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     TitleLabel.Parent = TopBar
 
-    -- Nút bấm điều khiển (X, -, □) nằm trong TopBar
+    -- Nút điều khiển
     local BtnContainer = Instance.new("Frame")
     BtnContainer.Size = UDim2.new(0, 110, 1, 0)
     BtnContainer.Position = UDim2.new(1, -115, 0, 0)
     BtnContainer.BackgroundTransparency = 1
     BtnContainer.Parent = TopBar
-    
-    local btnLayout = Instance.new("UIListLayout", BtnContainer)
-    btnLayout.FillDirection = Enum.FillDirection.Horizontal
-    btnLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
-    btnLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-    btnLayout.Padding = UDim.new(0, 8)
+    Instance.new("UIListLayout", BtnContainer).FillDirection = Enum.FillDirection.Horizontal
+    BtnContainer.UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+    BtnContainer.UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    BtnContainer.UIListLayout.Padding = UDim.new(0, 8)
 
     local function CreateTopBtn(text, color, callback)
         local btn = Instance.new("TextButton")
@@ -93,62 +110,45 @@ function CelestialLib.new(title)
         btn.Text = text
         btn.TextColor3 = Color3.fromRGB(255, 255, 255)
         btn.Font = Enum.Font.GothamBold
-        btn.TextSize = 14
         btn.Parent = BtnContainer
-        RoundElement(btn, 6)
+        AddVisuals(btn, 6, Color3.fromRGB(255, 255, 255), 1)
         btn.MouseButton1Click:Connect(callback)
-        return btn
     end
 
-    -- Icon 😏 khi thu nhỏ
     local MiniIcon = Instance.new("TextButton")
-    MiniIcon.Size = UDim2.new(0, 50, 0, 50)
+    MiniIcon.Size = UDim2.new(0, 60, 0, 60)
     MiniIcon.Position = UDim2.new(0.1, 0, 0.1, 0)
-    MiniIcon.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    MiniIcon.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
     MiniIcon.Text = "😏"
-    MiniIcon.TextSize = 30
+    MiniIcon.TextSize = 35
     MiniIcon.Visible = false
     MiniIcon.Parent = self.Gui
-    RoundElement(MiniIcon, 25)
-    MakeDraggable(MiniIcon, MiniIcon) -- Icon 😏 thì kéo chính nó
+    AddVisuals(MiniIcon, 30, Color3.fromRGB(255, 255, 255), 2)
+    MakeDraggable(MiniIcon, MiniIcon)
 
-    -- Logic Nút X (Xóa hoàn toàn)
-    CreateTopBtn("✕", Color3.fromRGB(200, 50, 50), function()
-        self.Gui:Destroy()
-    end)
-
-    -- Logic Nút □ (Thu nhỏ/Phóng to chiều cao)
-    local isMaximized = true
+    CreateTopBtn("✕", Color3.fromRGB(200, 50, 50), function() self.Gui:Destroy() end)
+    
+    local isMax = true
     CreateTopBtn("□", Color3.fromRGB(60, 60, 65), function()
-        isMaximized = not isMaximized
-        TweenService:Create(self.Main, TweenInfo.new(0.3), {
-            Size = isMaximized and UDim2.new(0, 550, 0, 380) or UDim2.new(0, 550, 0, 45)
-        }):Play()
+        isMax = not isMax
+        TweenService:Create(self.Main, TweenInfo.new(0.3), {Size = isMax and UDim2.new(0, 550, 0, 380) or UDim2.new(0, 550, 0, 45)}):Play()
     end)
 
-    -- Logic Nút - (Ẩn tạm thành icon 😏)
-    CreateTopBtn("−", Color3.fromRGB(60, 60, 65), function()
-        self.Main.Visible = false
-        MiniIcon.Visible = true
-    end)
+    CreateTopBtn("−", Color3.fromRGB(60, 60, 65), function() self.Main.Visible = false; MiniIcon.Visible = true end)
+    MiniIcon.MouseButton1Click:Connect(function() self.Main.Visible = true; MiniIcon.Visible = false end)
 
-    MiniIcon.MouseButton1Click:Connect(function()
-        self.Main.Visible = true
-        MiniIcon.Visible = false
-    end)
-
-    -- Sidebar & TabContainer (Phần nội dung bên dưới)
+    -- Sidebar & TabContainer (Hiệu ứng mờ bằng BackgroundTransparency)
     self.Sidebar = Instance.new("Frame")
-    self.Sidebar.Name = "Sidebar"
-    self.Sidebar.Size = UDim2.new(0, 140, 1, -110)
+    self.Sidebar.Size = UDim2.new(0, 140, 1, -115)
     self.Sidebar.Position = UDim2.new(0, 10, 0, 55)
-    self.Sidebar.BackgroundTransparency = 1
+    self.Sidebar.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    self.Sidebar.BackgroundTransparency = 0.7 -- Hiệu ứng kính mờ
     self.Sidebar.Parent = self.Main
-    local sLayout = Instance.new("UIListLayout", self.Sidebar)
-    sLayout.Padding = UDim.new(0, 6)
+    AddVisuals(self.Sidebar, 8, Color3.fromRGB(255, 255, 255), 0.5)
+    Instance.new("UIListLayout", self.Sidebar).Padding = UDim.new(0, 6)
+    Instance.new("UIPadding", self.Sidebar).PaddingTop = UDim.new(0, 5)
 
     self.TabContainer = Instance.new("Frame")
-    self.TabContainer.Name = "TabContainer"
     self.TabContainer.Size = UDim2.new(1, -170, 1, -65)
     self.TabContainer.Position = UDim2.new(0, 160, 0, 55)
     self.TabContainer.BackgroundTransparency = 1
@@ -158,20 +158,21 @@ function CelestialLib.new(title)
     local UserProfile = Instance.new("Frame")
     UserProfile.Size = UDim2.new(0, 130, 0, 45)
     UserProfile.Position = UDim2.new(0, 10, 1, -55)
-    UserProfile.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    UserProfile.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    UserProfile.BackgroundTransparency = 0.6
     UserProfile.Parent = self.Main
-    RoundElement(UserProfile, 8)
+    AddVisuals(UserProfile, 8, Color3.fromRGB(255, 255, 255), 0.5)
 
     local Avatar = Instance.new("ImageLabel")
-    Avatar.Size = UDim2.new(0, 30, 0, 30)
-    Avatar.Position = UDim2.new(0, 7, 0.5, -15)
+    Avatar.Size = UDim2.new(0, 32, 0, 32)
+    Avatar.Position = UDim2.new(0, 7, 0.5, -16)
     Avatar.Image = game:GetService("Players"):GetUserThumbnailAsync(game.Players.LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
     Avatar.Parent = UserProfile
-    RoundElement(Avatar, 15)
+    AddVisuals(Avatar, 16, Color3.fromRGB(255,255,255), 1)
 
     local UserName = Instance.new("TextLabel")
     UserName.Size = UDim2.new(1, -45, 1, 0)
-    UserName.Position = UDim2.new(0, 42, 0, 0)
+    UserName.Position = UDim2.new(0, 45, 0, 0)
     UserName.BackgroundTransparency = 1
     UserName.Text = game.Players.LocalPlayer.DisplayName
     UserName.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -183,7 +184,6 @@ function CelestialLib.new(title)
     return self
 end
 
--- HÀM TẠO TAB & COLUMN (Giữ nguyên logic của bạn nhưng sửa lỗi AddButton)
 function CelestialLib:CreateTab(name)
     local TabPage = Instance.new("ScrollingFrame")
     TabPage.Size = UDim2.new(1, 0, 1, 0)
@@ -192,86 +192,84 @@ function CelestialLib:CreateTab(name)
     TabPage.ScrollBarThickness = 0
     TabPage.CanvasSize = UDim2.new(0, 600, 0, 0)
     TabPage.Parent = self.TabContainer
-    
-    local pageLayout = Instance.new("UIListLayout", TabPage)
-    pageLayout.FillDirection = Enum.FillDirection.Horizontal
-    pageLayout.Padding = UDim.new(0, 12)
+    Instance.new("UIListLayout", TabPage).FillDirection = Enum.FillDirection.Horizontal
+    TabPage.UIListLayout.Padding = UDim.new(0, 12)
 
     local TabButton = Instance.new("TextButton")
-    TabButton.Size = UDim2.new(1, 0, 0, 32)
-    TabButton.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    TabButton.Size = UDim2.new(0.9, 0, 0, 35)
+    TabButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    TabButton.BackgroundTransparency = 0.9 -- Nút tab mờ
     TabButton.Text = name
-    TabButton.TextColor3 = Color3.fromRGB(180, 180, 180)
-    TabButton.Font = Enum.Font.Gotham
-    TabButton.TextSize = 13
+    TabButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+    TabButton.Font = Enum.Font.GothamMedium
     TabButton.Parent = self.Sidebar
-    RoundElement(TabButton, 6)
+    AddVisuals(TabButton, 6, Color3.fromRGB(255, 255, 255), 0.5)
     
     TabButton.MouseButton1Click:Connect(function()
-        for _, v in pairs(self.TabContainer:GetChildren()) do
-            if v:IsA("ScrollingFrame") then v.Visible = false end
-        end
+        for _, v in pairs(self.TabContainer:GetChildren()) do if v:IsA("ScrollingFrame") then v.Visible = false end end
         TabPage.Visible = true
+        TweenService:Create(TabButton, TweenInfo.new(0.2), {BackgroundTransparency = 0.7}):Play()
+        task.wait(0.2)
+        TweenService:Create(TabButton, TweenInfo.new(0.2), {BackgroundTransparency = 0.9}):Play()
     end)
 
     function TabPage:AddColumn(title)
         local Column = Instance.new("Frame")
-        Column.Size = UDim2.new(0, 180, 1, -10)
-        Column.BackgroundColor3 = Color3.fromRGB(18, 18, 23)
+        Column.Size = UDim2.new(0, 185, 1, -5)
+        Column.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        Column.BackgroundTransparency = 0.75 -- Cột mờ
         Column.Parent = TabPage
-        RoundElement(Column, 8)
+        AddVisuals(Column, 8, Color3.fromRGB(255, 255, 255), 0.8)
 
         local ColTitle = Instance.new("TextLabel")
         ColTitle.Text = title:upper()
-        ColTitle.Size = UDim2.new(1, 0, 0, 30)
+        ColTitle.Size = UDim2.new(1, 0, 0, 35)
         ColTitle.BackgroundTransparency = 1
-        ColTitle.TextColor3 = Color3.fromRGB(120, 120, 130)
+        ColTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
         ColTitle.Font = Enum.Font.GothamBold
-        ColTitle.TextSize = 10
+        ColTitle.TextSize = 11
         ColTitle.Parent = Column
 
-        local ItemList = Instance.new("UIListLayout", Column)
-        ItemList.Padding = UDim.new(0, 6)
-        ItemList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+        Instance.new("UIListLayout", Column).Padding = UDim.new(0, 7)
+        Column.UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
         Instance.new("UIPadding", Column).PaddingTop = UDim.new(0, 35)
 
         function Column:AddButton(text, callback)
             local btn = Instance.new("TextButton")
             btn.Size = UDim2.new(0.9, 0, 0, 32)
-            btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+            btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            btn.BackgroundTransparency = 0.9
             btn.Text = text
-            btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
             btn.Font = Enum.Font.Gotham
-            btn.TextSize = 12
             btn.Parent = Column
-            RoundElement(btn, 6)
+            AddVisuals(btn, 6, Color3.fromRGB(255, 255, 255), 0.5)
             btn.MouseButton1Click:Connect(callback)
         end
 
         function Column:AddToggle(text, callback)
-            local TglFrame = Instance.new("TextButton")
-            TglFrame.Size = UDim2.new(0.9, 0, 0, 32)
-            TglFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-            TglFrame.Text = "  " .. text
-            TglFrame.TextColor3 = Color3.fromRGB(180, 180, 180)
-            TglFrame.TextXAlignment = Enum.TextXAlignment.Left
-            TglFrame.Font = Enum.Font.Gotham
-            TglFrame.TextSize = 12
-            TglFrame.Parent = Column
-            RoundElement(TglFrame, 6)
+            local Tgl = Instance.new("TextButton")
+            Tgl.Size = UDim2.new(0.9, 0, 0, 32)
+            Tgl.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            Tgl.BackgroundTransparency = 0.9
+            Tgl.Text = "  " .. text
+            Tgl.TextColor3 = Color3.fromRGB(255, 255, 255)
+            Tgl.TextXAlignment = Enum.TextXAlignment.Left
+            Tgl.Parent = Column
+            AddVisuals(Tgl, 6, Color3.fromRGB(255, 255, 255), 0.5)
 
             local Status = Instance.new("Frame")
-            Status.Size = UDim2.new(0, 16, 0, 16)
-            Status.Position = UDim2.new(1, -24, 0.5, -8)
+            Status.Size = UDim2.new(0, 20, 0, 10)
+            Status.Position = UDim2.new(1, -30, 0.5, -5)
             Status.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-            Status.Parent = TglFrame
-            RoundElement(Status, 4)
+            Status.Parent = Tgl
+            AddVisuals(Status, 5, Color3.fromRGB(0,0,0), 0)
 
-            local enabled = false
-            TglFrame.MouseButton1Click:Connect(function()
-                enabled = not enabled
-                Status.BackgroundColor3 = enabled and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
-                callback(enabled)
+            local en = false
+            Tgl.MouseButton1Click:Connect(function()
+                en = not en
+                TweenService:Create(Status, TweenInfo.new(0.2), {BackgroundColor3 = en and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)}):Play()
+                callback(en)
             end)
         end
         return Column
