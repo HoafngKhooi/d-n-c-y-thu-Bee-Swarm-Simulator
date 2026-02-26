@@ -11,79 +11,31 @@ local function RoundElement(obj, radius)
     corner.Parent = obj
 end
 
--- Hàm hỗ trợ kéo thả (Dùng được cho cả PC và Mobile)
--- Thay thế hàm MakeDraggable cũ bằng phiên bản giới hạn vùng này:
+-- Hàm hỗ trợ kéo thả (Chỉ định rõ vùng kéo dragHandle và khung di chuyển mainFrame)
 local function MakeDraggable(dragHandle, mainFrame)
     local dragging, dragInput, dragStart, startPos
-
     dragHandle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = mainFrame.Position
-
             input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
             end)
         end
     end)
-
     dragHandle.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             dragInput = input
         end
     end)
-
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
-            mainFrame.Position = UDim2.new(
-                startPos.X.Scale, 
-                startPos.X.Offset + delta.X, 
-                startPos.Y.Scale, 
-                startPos.Y.Offset + delta.Y
-            )
+            mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
 end
-
--- TRONG HÀM CelestialLib.new(title):
--- Tìm đoạn khởi tạo TopBar và sửa lại như sau:
-
-    self.Main = Instance.new("Frame")
-    -- (Giữ nguyên các thuộc tính Size, Position... của Main)
-    self.Main.Parent = self.Gui
-    RoundElement(self.Main, 10)
-
-    -- 1. Tạo thanh TopBar (Vùng được phép kéo)
-    local TopBar = Instance.new("Frame")
-    TopBar.Name = "TopBar"
-    TopBar.Size = UDim2.new(1, 0, 0, 45) -- Vùng khoanh đỏ của bạn
-    TopBar.BackgroundTransparency = 1 -- Để trong suốt hoặc chỉnh màu tùy bạn
-    TopBar.Parent = self.Main
-    
-    -- Áp dụng kéo thả: Chỉ TopBar mới kéo được Main
-    MakeDraggable(TopBar, self.Main)
-
-    -- 2. Đưa tiêu đề vào trong TopBar
-    local TitleLabel = Instance.new("TextLabel")
-    TitleLabel.Text = "  " .. title
-    TitleLabel.Size = UDim2.new(1, -120, 1, 0)
-    TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TitleLabel.BackgroundTransparency = 1
-    TitleLabel.Font = Enum.Font.GothamBold
-    TitleLabel.TextSize = 16
-    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-    TitleLabel.Parent = TopBar -- Quan trọng: Parent là TopBar
-
-    -- 3. Đưa cụm nút điều khiển vào TopBar để nó đi theo khi kéo
-    local BtnContainer = Instance.new("Frame")
-    BtnContainer.Size = UDim2.new(0, 110, 1, 0)
-    BtnContainer.Position = UDim2.new(1, -115, 0, 0)
-    BtnContainer.BackgroundTransparency = 1
-    BtnContainer.Parent = TopBar -- Quan trọng: Parent là TopBar
 
 function CelestialLib.new(title)
     local self = setmetatable({}, CelestialLib)
@@ -102,13 +54,14 @@ function CelestialLib.new(title)
     self.Main.ClipsDescendants = true
     self.Main.Parent = self.Gui
     RoundElement(self.Main, 10)
-    MakeDraggable(self.Main) -- Cho phép kéo ở bất kỳ đâu trên Main hoặc thanh tiêu đề
 
-    -- Top Bar (Thanh điều khiển)
+    -- 1. THANH TOPBAR (Vùng khoanh đỏ - Chỉ kéo ở đây)
     local TopBar = Instance.new("Frame")
-    TopBar.Size = UDim2.new(1, 0, 0, 40)
+    TopBar.Name = "TopBar"
+    TopBar.Size = UDim2.new(1, 0, 0, 45)
     TopBar.BackgroundTransparency = 1
     TopBar.Parent = self.Main
+    MakeDraggable(TopBar, self.Main) -- Kích hoạt kéo thả cho thanh tiêu đề
 
     local TitleLabel = Instance.new("TextLabel")
     TitleLabel.Text = "  " .. title
@@ -120,7 +73,7 @@ function CelestialLib.new(title)
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     TitleLabel.Parent = TopBar
 
-    -- Nút bấm điều khiển (X, -, □)
+    -- Nút bấm điều khiển (X, -, □) nằm trong TopBar
     local BtnContainer = Instance.new("Frame")
     BtnContainer.Size = UDim2.new(0, 110, 1, 0)
     BtnContainer.Position = UDim2.new(1, -115, 0, 0)
@@ -157,23 +110,23 @@ function CelestialLib.new(title)
     MiniIcon.Visible = false
     MiniIcon.Parent = self.Gui
     RoundElement(MiniIcon, 25)
-    MakeDraggable(MiniIcon)
+    MakeDraggable(MiniIcon, MiniIcon) -- Icon 😏 thì kéo chính nó
 
-    -- Logic Nút X (Xóa)
+    -- Logic Nút X (Xóa hoàn toàn)
     CreateTopBtn("✕", Color3.fromRGB(200, 50, 50), function()
         self.Gui:Destroy()
     end)
 
-    -- Logic Nút □ (Zoom to/nhỏ)
+    -- Logic Nút □ (Thu nhỏ/Phóng to chiều cao)
     local isMaximized = true
     CreateTopBtn("□", Color3.fromRGB(60, 60, 65), function()
         isMaximized = not isMaximized
         TweenService:Create(self.Main, TweenInfo.new(0.3), {
-            Size = isMaximized and UDim2.new(0, 550, 0, 380) or UDim2.new(0, 550, 0, 40)
+            Size = isMaximized and UDim2.new(0, 550, 0, 380) or UDim2.new(0, 550, 0, 45)
         }):Play()
     end)
 
-    -- Logic Nút - (Ẩn tạm)
+    -- Logic Nút - (Ẩn tạm thành icon 😏)
     CreateTopBtn("−", Color3.fromRGB(60, 60, 65), function()
         self.Main.Visible = false
         MiniIcon.Visible = true
@@ -184,17 +137,20 @@ function CelestialLib.new(title)
         MiniIcon.Visible = false
     end)
 
-    -- Các phần cũ của bạn (Sidebar, TabContainer, UserProfile)
+    -- Sidebar & TabContainer (Phần nội dung bên dưới)
     self.Sidebar = Instance.new("Frame")
-    self.Sidebar.Size = UDim2.new(0, 140, 1, -80)
-    self.Sidebar.Position = UDim2.new(0, 10, 0, 45)
+    self.Sidebar.Name = "Sidebar"
+    self.Sidebar.Size = UDim2.new(0, 140, 1, -110)
+    self.Sidebar.Position = UDim2.new(0, 10, 0, 55)
     self.Sidebar.BackgroundTransparency = 1
     self.Sidebar.Parent = self.Main
-    Instance.new("UIListLayout", self.Sidebar).Padding = UDim.new(0, 6)
+    local sLayout = Instance.new("UIListLayout", self.Sidebar)
+    sLayout.Padding = UDim.new(0, 6)
 
     self.TabContainer = Instance.new("Frame")
-    self.TabContainer.Size = UDim2.new(1, -170, 1, -55)
-    self.TabContainer.Position = UDim2.new(0, 160, 0, 45)
+    self.TabContainer.Name = "TabContainer"
+    self.TabContainer.Size = UDim2.new(1, -170, 1, -65)
+    self.TabContainer.Position = UDim2.new(0, 160, 0, 55)
     self.TabContainer.BackgroundTransparency = 1
     self.TabContainer.Parent = self.Main
 
@@ -227,6 +183,7 @@ function CelestialLib.new(title)
     return self
 end
 
+-- HÀM TẠO TAB & COLUMN (Giữ nguyên logic của bạn nhưng sửa lỗi AddButton)
 function CelestialLib:CreateTab(name)
     local TabPage = Instance.new("ScrollingFrame")
     TabPage.Size = UDim2.new(1, 0, 1, 0)
@@ -251,7 +208,9 @@ function CelestialLib:CreateTab(name)
     RoundElement(TabButton, 6)
     
     TabButton.MouseButton1Click:Connect(function()
-        for _, v in pairs(self.TabContainer:GetChildren()) do v.Visible = false end
+        for _, v in pairs(self.TabContainer:GetChildren()) do
+            if v:IsA("ScrollingFrame") then v.Visible = false end
+        end
         TabPage.Visible = true
     end)
 
@@ -274,7 +233,6 @@ function CelestialLib:CreateTab(name)
         local ItemList = Instance.new("UIListLayout", Column)
         ItemList.Padding = UDim.new(0, 6)
         ItemList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-        
         Instance.new("UIPadding", Column).PaddingTop = UDim.new(0, 35)
 
         function Column:AddButton(text, callback)
@@ -316,10 +274,8 @@ function CelestialLib:CreateTab(name)
                 callback(enabled)
             end)
         end
-
         return Column
     end
-
     return TabPage
 end
 
