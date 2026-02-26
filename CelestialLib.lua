@@ -12,31 +12,78 @@ local function RoundElement(obj, radius)
 end
 
 -- Hàm hỗ trợ kéo thả (Dùng được cho cả PC và Mobile)
-local function MakeDraggable(gui)
+-- Thay thế hàm MakeDraggable cũ bằng phiên bản giới hạn vùng này:
+local function MakeDraggable(dragHandle, mainFrame)
     local dragging, dragInput, dragStart, startPos
-    local function update(input)
-        local delta = input.Position - dragStart
-        gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-    gui.InputBegan:Connect(function(input)
+
+    dragHandle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
-            startPos = gui.Position
+            startPos = mainFrame.Position
+
             input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
             end)
         end
     end)
-    gui.InputChanged:Connect(function(input)
+
+    dragHandle.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             dragInput = input
         end
     end)
+
     UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then update(input) end
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            mainFrame.Position = UDim2.new(
+                startPos.X.Scale, 
+                startPos.X.Offset + delta.X, 
+                startPos.Y.Scale, 
+                startPos.Y.Offset + delta.Y
+            )
+        end
     end)
 end
+
+-- TRONG HÀM CelestialLib.new(title):
+-- Tìm đoạn khởi tạo TopBar và sửa lại như sau:
+
+    self.Main = Instance.new("Frame")
+    -- (Giữ nguyên các thuộc tính Size, Position... của Main)
+    self.Main.Parent = self.Gui
+    RoundElement(self.Main, 10)
+
+    -- 1. Tạo thanh TopBar (Vùng được phép kéo)
+    local TopBar = Instance.new("Frame")
+    TopBar.Name = "TopBar"
+    TopBar.Size = UDim2.new(1, 0, 0, 45) -- Vùng khoanh đỏ của bạn
+    TopBar.BackgroundTransparency = 1 -- Để trong suốt hoặc chỉnh màu tùy bạn
+    TopBar.Parent = self.Main
+    
+    -- Áp dụng kéo thả: Chỉ TopBar mới kéo được Main
+    MakeDraggable(TopBar, self.Main)
+
+    -- 2. Đưa tiêu đề vào trong TopBar
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Text = "  " .. title
+    TitleLabel.Size = UDim2.new(1, -120, 1, 0)
+    TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.TextSize = 16
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.Parent = TopBar -- Quan trọng: Parent là TopBar
+
+    -- 3. Đưa cụm nút điều khiển vào TopBar để nó đi theo khi kéo
+    local BtnContainer = Instance.new("Frame")
+    BtnContainer.Size = UDim2.new(0, 110, 1, 0)
+    BtnContainer.Position = UDim2.new(1, -115, 0, 0)
+    BtnContainer.BackgroundTransparency = 1
+    BtnContainer.Parent = TopBar -- Quan trọng: Parent là TopBar
 
 function CelestialLib.new(title)
     local self = setmetatable({}, CelestialLib)
